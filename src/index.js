@@ -1,86 +1,141 @@
-require('dotenv').config();
-const fs = require('fs');
-const path = require('path');
-const http = require('http');
-const { Client, GatewayIntentBits } = require('discord.js');
+// ======================================================
+// LOAD ENVIRONMENT VARIABLES
+// ======================================================
+require("dotenv").config();
 
-// --- 1. DUMMY SERVER (Biar Render Gak Marah/Timeout) ---
+const fs = require("fs");
+const path = require("path");
+const http = require("http");
+const { Client, GatewayIntentBits } = require("discord.js");
+
+
+// ======================================================
+// HTTP SERVER (WAJIB untuk Render Web Service)
+// ======================================================
 const PORT = process.env.PORT || 3000;
-const server = http.createServer((req, res) => {
-    res.writeHead(200);
-    res.end('Bot is running and healthy!');
+
+http.createServer((req, res) => {
+  res.writeHead(200, { "Content-Type": "text/plain" });
+  res.end("Bot is running ✅");
+}).listen(PORT, () => {
+  console.log(`🌍 HTTP server running on port ${PORT}`);
 });
 
-server.listen(PORT, () => {
-    console.log(`🌍 Server HTTP nyala di port ${PORT}`);
-});
 
-
-// --- 2. SETUP DISCORD BOT ---
+// ======================================================
+// CREATE DISCORD CLIENT
+// ======================================================
 const client = new Client({
-    intents: [
-        GatewayIntentBits.Guilds,
-        GatewayIntentBits.GuildMessages,
-        GatewayIntentBits.GuildMembers, // Wajib buat welcome
-        GatewayIntentBits.MessageContent
-    ]
+  intents: [
+    GatewayIntentBits.Guilds,
+    GatewayIntentBits.GuildMembers,
+    GatewayIntentBits.GuildMessages,
+    GatewayIntentBits.MessageContent,
+  ],
 });
 
-// --- 3. EVENT HANDLER (Auto-Load file dari folder 'events') ---
-const eventsPath = path.join(__dirname, 'events');
 
-// Cek dulu folder events ada apa ngga, biar ga crash kalo kosong
+// ======================================================
+// LOAD EVENTS AUTOMATICALLY
+// ======================================================
+const eventsPath = path.join(__dirname, "events");
+
 if (fs.existsSync(eventsPath)) {
-    const eventFiles = fs.readdirSync(eventsPath).filter(file => file.endsWith('.js'));
+  const eventFiles = fs.readdirSync(eventsPath).filter(f => f.endsWith(".js"));
 
-    for (const file of eventFiles) {
-        const filePath = path.join(eventsPath, file);
-        const event = require(filePath);
-        
-        if (event.once) {
-            client.once(event.name, (...args) => event.execute(...args));
-        } else {
-            client.on(event.name, (...args) => event.execute(...args));
-        }
+  for (const file of eventFiles) {
+    const event = require(path.join(eventsPath, file));
+
+    if (!event.name || !event.execute) {
+      console.warn(`⚠️ Event ${file} tidak valid.`);
+      continue;
     }
+
+    if (event.once) {
+      client.once(event.name, (...args) =>
+        event.execute(...args, client)
+      );
+    } else {
+      client.on(event.name, (...args) =>
+        event.execute(...args, client)
+      );
+    }
+  }
+
+  console.log(`✅ Loaded ${eventFiles.length} event(s)`);
 } else {
-    console.warn("⚠️ Folder 'events' tidak ditemukan! Fitur event handler dilewati.");
+  console.warn("⚠️ Folder events tidak ditemukan.");
 }
 
-// --- 4. COMMAND MANUAL (Buat Test Welcome) ---
-client.on('messageCreate', (message) => {
-    if (message.content === '!testwelcome') {
-        console.log('🔄 Simulasi member join...');
-        client.emit('guildMemberAdd', message.member); 
-        message.reply('Simulasi Welcome dikirim!');
-    }
+
+// ======================================================
+// TEST COMMAND (SIMULASI WELCOME)
+// ======================================================
+client.on("messageCreate", message => {
+  if (message.author.bot) return;
+
+  if (message.content === "!testwelcome") {
+    console.log("🔄 Simulating member join...");
+    client.emit("guildMemberAdd", message.member);
+    message.reply("Simulasi welcome dikirim!");
+  }
 });
 
 
-// --- 5. LOGIN & DEBUGGING (Bagian Penting!) ---
-console.log("------------------------------------------------");
-console.log("🕵️  DIAGNOSA LOGIN...");
+// ======================================================
+// CONNECTION & STATUS LOGGING
+// ======================================================
+client.once("clientReady", () => {
+  console.log("=================================");
+  console.log(`🤖 Logged in as: ${client.user.tag}`);
+  console.log(`🆔 Bot ID: ${client.user.id}`);
+  console.log(`⏰ Ready at: ${new Date().toLocaleString()}`);
+  console.log("=================================");
+});
 
-// Cek ketersediaan Token
-if (!process.env.DISCORD_TOKEN) {
-    console.error("❌ ERROR FATAL: Token KOSONG / Tidak Terbaca!");
-    console.error("👉 Solusi: Buka Dashboard Render -> Environment -> Add 'DISCORD_TOKEN'");
-} else {
-    // Tampilkan 5 huruf depan token buat mastiin (jangan pernah print full token!)
-    const maskedToken = process.env.DISCORD_TOKEN.substring(0, 5) + "...";
-    console.log(`✅ Token ditemukan: ${maskedToken}`);
-    console.log("🚀 Mencoba menghubungkan ke Discord...");
 
-    client.login(process.env.DISCORD_TOKEN)
-        .then(() => {
-            console.log(`🎉 BERHASIL LOGIN sebagai ${client.user.tag}!`);
-            console.log("✅ Bot sekarang ONLINE.");
-        })
-        .catch((error) => {
-            console.error("☠️ GAGAL LOGIN! Ini detail errornya:");
-            console.error(error); 
-            // Kalau errornya "DisallowedIntents", berarti settingan di Dev Portal belum dicentang.
-            // Kalau errornya "TokenInvalid", berarti token salah.
-        });
+client.on("disconnect", () => {
+  console.log("⚠️ Bot disconnected!");
+});
+
+client.on("reconnecting", () => {
+  console.log("🔄 Reconnecting to Discord...");
+});
+
+client.on("resume", () => {
+  console.log("✅ Connection resumed");
+});
+
+
+// ======================================================
+// LOGIN BOT
+// ======================================================
+console.log("🔍 Checking DISCORD_TOKEN...");
+
+const token = process.env.DISCORD_TOKEN;
+
+if (!token) {
+  console.error("❌ DISCORD_TOKEN tidak ditemukan!");
+  console.error("👉 Tambahkan di Render Environment Variables");
+  process.exit(1);
 }
-console.log("------------------------------------------------");
+
+console.log(`✅ Token detected: ${token.substring(0, 5)}...`);
+console.log("🚀 Connecting to Discord...");
+
+client.login(token).catch(err => {
+  console.error("☠️ Failed to login:");
+  console.error(err);
+});
+
+
+// ======================================================
+// GLOBAL ERROR HANDLER (ANTI CRASH)
+// ======================================================
+process.on("unhandledRejection", err => {
+  console.error("Unhandled Promise Rejection:", err);
+});
+
+process.on("uncaughtException", err => {
+  console.error("Uncaught Exception:", err);
+});
