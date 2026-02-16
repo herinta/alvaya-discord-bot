@@ -1,141 +1,145 @@
-// ======================================================
-// LOAD ENVIRONMENT VARIABLES
-// ======================================================
-require("dotenv").config();
+/**
+ * =========================================
+ *  RENDER DISCORD BOT STABLE VERSION
+ * =========================================
+ */
 
-const fs = require("fs");
-const path = require("path");
-const http = require("http");
-const { Client, GatewayIntentBits } = require("discord.js");
+// ⭐ FIX IPv6 handshake issue (WAJIB)
+require('dns').setDefaultResultOrder('ipv4first');
 
+require('dotenv').config();
+const fs = require('fs');
+const path = require('path');
+const http = require('http');
+const https = require('https');
+const { Client, GatewayIntentBits } = require('discord.js');
 
-// ======================================================
-// HTTP SERVER (WAJIB untuk Render Web Service)
-// ======================================================
-const PORT = process.env.PORT || 3000;
+console.log("------------------------------------------------");
+console.log("🚀 Starting bot...");
+console.log("Node version:", process.version);
+
+// =========================================
+// 1️⃣ HTTP SERVER (WAJIB untuk Web Service)
+// =========================================
+const PORT = process.env.PORT || 10000;
 
 http.createServer((req, res) => {
-  res.writeHead(200, { "Content-Type": "text/plain" });
-  res.end("Bot is running ✅");
+  res.writeHead(200);
+  res.end('Bot is alive ✅');
 }).listen(PORT, () => {
   console.log(`🌍 HTTP server running on port ${PORT}`);
 });
 
+// =========================================
+// 2️⃣ SELF PING (BIAR GA SLEEP)
+// =========================================
+if (process.env.RENDER_EXTERNAL_URL) {
+  setInterval(() => {
+    https.get(process.env.RENDER_EXTERNAL_URL);
+    console.log("🔁 Self ping sent");
+  }, 5 * 60 * 1000);
+}
 
-// ======================================================
-// CREATE DISCORD CLIENT
-// ======================================================
+// =========================================
+// 3️⃣ TEST KONEKSI KE DISCORD API
+// =========================================
+https.get("https://discord.com/api/gateway", res => {
+  console.log("🌐 Discord API status:", res.statusCode);
+}).on("error", err => {
+  console.error("❌ Cannot reach Discord API:", err);
+});
+
+// =========================================
+// 4️⃣ DISCORD CLIENT SETUP
+// =========================================
 const client = new Client({
   intents: [
     GatewayIntentBits.Guilds,
-    GatewayIntentBits.GuildMembers,
     GatewayIntentBits.GuildMessages,
-    GatewayIntentBits.MessageContent,
+    GatewayIntentBits.GuildMembers,
+    GatewayIntentBits.MessageContent
   ],
+  ws: {
+    compress: false // ⭐ fix compression issue
+  }
 });
 
+// =========================================
+// 5️⃣ DEBUG & CONNECTION EVENTS
+// =========================================
+client.on("ready", () => {
+  console.log(`🎉 BOT READY sebagai ${client.user.tag}`);
+});
 
-// ======================================================
-// LOAD EVENTS AUTOMATICALLY
-// ======================================================
-const eventsPath = path.join(__dirname, "events");
+client.on("disconnect", () => {
+  console.log("⚠️ Bot disconnected");
+});
+
+client.on("reconnecting", () => {
+  console.log("🔄 Reconnecting...");
+});
+
+client.on("shardDisconnect", () => {
+  console.log("⚠️ Shard disconnected");
+});
+
+client.on("shardReconnecting", () => {
+  console.log("🔄 Shard reconnecting");
+});
+
+client.on("error", console.error);
+client.on("shardError", console.error);
+
+// =========================================
+// 6️⃣ LOAD EVENTS (optional folder)
+// =========================================
+const eventsPath = path.join(__dirname, 'events');
 
 if (fs.existsSync(eventsPath)) {
-  const eventFiles = fs.readdirSync(eventsPath).filter(f => f.endsWith(".js"));
+  const eventFiles = fs.readdirSync(eventsPath).filter(file => file.endsWith('.js'));
 
   for (const file of eventFiles) {
     const event = require(path.join(eventsPath, file));
-
-    if (!event.name || !event.execute) {
-      console.warn(`⚠️ Event ${file} tidak valid.`);
-      continue;
-    }
-
     if (event.once) {
-      client.once(event.name, (...args) =>
-        event.execute(...args, client)
-      );
+      client.once(event.name, (...args) => event.execute(...args));
     } else {
-      client.on(event.name, (...args) =>
-        event.execute(...args, client)
-      );
+      client.on(event.name, (...args) => event.execute(...args));
     }
   }
 
   console.log(`✅ Loaded ${eventFiles.length} event(s)`);
 } else {
-  console.warn("⚠️ Folder events tidak ditemukan.");
+  console.warn("⚠️ Folder 'events' tidak ditemukan");
 }
 
-
-// ======================================================
-// TEST COMMAND (SIMULASI WELCOME)
-// ======================================================
-client.on("messageCreate", message => {
-  if (message.author.bot) return;
-
-  if (message.content === "!testwelcome") {
-    console.log("🔄 Simulating member join...");
-    client.emit("guildMemberAdd", message.member);
-    message.reply("Simulasi welcome dikirim!");
+// =========================================
+// 7️⃣ TEST COMMAND
+// =========================================
+client.on('messageCreate', message => {
+  if (message.content === '!ping') {
+    message.reply('pong 🏓');
   }
 });
 
-
-// ======================================================
-// CONNECTION & STATUS LOGGING
-// ======================================================
-client.once("clientReady", () => {
-  console.log("=================================");
-  console.log(`🤖 Logged in as: ${client.user.tag}`);
-  console.log(`🆔 Bot ID: ${client.user.id}`);
-  console.log(`⏰ Ready at: ${new Date().toLocaleString()}`);
-  console.log("=================================");
-});
-
-
-client.on("disconnect", () => {
-  console.log("⚠️ Bot disconnected!");
-});
-
-client.on("reconnecting", () => {
-  console.log("🔄 Reconnecting to Discord...");
-});
-
-client.on("resume", () => {
-  console.log("✅ Connection resumed");
-});
-
-
-// ======================================================
-// LOGIN BOT
-// ======================================================
+// =========================================
+// 8️⃣ LOGIN DISCORD (DELAY FIX RENDER)
+// =========================================
 console.log("🔍 Checking DISCORD_TOKEN...");
 
-const token = process.env.DISCORD_TOKEN;
-
-if (!token) {
+if (!process.env.DISCORD_TOKEN) {
   console.error("❌ DISCORD_TOKEN tidak ditemukan!");
-  console.error("👉 Tambahkan di Render Environment Variables");
   process.exit(1);
 }
 
-console.log(`✅ Token detected: ${token.substring(0, 5)}...`);
-console.log("🚀 Connecting to Discord...");
+const maskedToken = process.env.DISCORD_TOKEN.slice(0, 5) + "...";
+console.log("✅ Token detected:", maskedToken);
+console.log("🚀 Connecting to Discord in 15 seconds...");
 
-client.login(token).catch(err => {
-  console.error("☠️ Failed to login:");
-  console.error(err);
-});
+setTimeout(() => {
+  client.login(process.env.DISCORD_TOKEN)
+    .catch(err => {
+      console.error("❌ LOGIN FAILED:", err);
+    });
+}, 15000);
 
-
-// ======================================================
-// GLOBAL ERROR HANDLER (ANTI CRASH)
-// ======================================================
-process.on("unhandledRejection", err => {
-  console.error("Unhandled Promise Rejection:", err);
-});
-
-process.on("uncaughtException", err => {
-  console.error("Uncaught Exception:", err);
-});
+console.log("------------------------------------------------");
