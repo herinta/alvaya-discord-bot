@@ -6,8 +6,24 @@ const {
     ButtonStyle, 
     ModalBuilder, 
     TextInputBuilder, 
-    TextInputStyle 
+    TextInputStyle,
+    PermissionFlagsBits 
 } = require('discord.js');
+
+// Fungsi pembantu untuk memvalidasi role Poseidon & Neptune
+function hasStaffAccess(interaction) {
+    if (!interaction.member) return false;
+    
+    // Server Owner & Administrator otomatis punya akses
+    if (interaction.guild?.ownerId === interaction.user.id) return true;
+    if (interaction.member.permissions?.has(PermissionFlagsBits.Administrator)) return true;
+    
+    // Cek Role Poseidon atau Neptune (termasuk jika nama role pakai emoji)
+    return interaction.member.roles.cache.some(role => {
+        const name = role.name.toLowerCase();
+        return name.includes('poseidon') || name.includes('neptune');
+    });
+}
 
 // Copy fungsi createRulesEmbed & createButton dari atas kesini juga ya,
 // atau idealnya taruh di file 'utils.js', tapi kita copas aja biar cepet.
@@ -133,6 +149,13 @@ module.exports = {
 
         // --- C. KALO USER PAKAI COMMAND /announce ---
         if (interaction.isChatInputCommand() && interaction.commandName === 'announce') {
+            if (!hasStaffAccess(interaction)) {
+                return await interaction.reply({
+                    content: '❌ Kamu tidak memiliki izin untuk menggunakan perintah ini! Hanya role **Poseidon** & **Neptune** yang dapat menggunakannya.',
+                    ephemeral: true
+                });
+            }
+
             const tipe = interaction.options.getString('tipe') || 'embed';
 
             if (tipe === 'embed') {
@@ -275,6 +298,13 @@ module.exports = {
 
         // --- F. KALO USER PAKAI COMMAND /edit-message ---
         if (interaction.isChatInputCommand() && interaction.commandName === 'edit-message') {
+            if (!hasStaffAccess(interaction)) {
+                return await interaction.reply({
+                    content: '❌ Kamu tidak memiliki izin untuk menggunakan perintah ini! Hanya role **Poseidon** & **Neptune** yang dapat menggunakannya.',
+                    ephemeral: true
+                });
+            }
+
             const messageId = interaction.options.getString('message_id').trim();
 
             let targetMessage;
