@@ -62,17 +62,27 @@ client.on("ready", async () => {
               )
       );
 
+  const editCmd = new SlashCommandBuilder()
+      .setName('edit-message')
+      .setDescription('Edit pesan atau pengumuman yang pernah dikirim oleh bot')
+      .setDefaultMemberPermissions(PermissionFlagsBits.Administrator)
+      .addStringOption(option =>
+          option.setName('message_id')
+              .setDescription('ID pesan bot yang ingin diedit (Klik kanan pesan -> Copy Message ID)')
+              .setRequired(true)
+      );
+
   try {
       // 1. Hapus Global Commands agar tidak duplikat dengan Guild Commands di Discord
       await client.application.commands.set([]);
 
       // 2. Daftarkan hanya ke level Server/Guild (Langsung aktif & tidak dobel)
       for (const guild of client.guilds.cache.values()) {
-          await guild.commands.set([announceCmd]);
+          await guild.commands.set([announceCmd, editCmd]);
       }
-      console.log("✅ Command /announce berhasil diperbarui (tanpa duplikat)!");
+      console.log("✅ Command /announce & /edit-message berhasil diperbarui!");
   } catch (error) {
-      console.error("❌ Gagal mendaftarkan command /announce:", error);
+      console.error("❌ Gagal mendaftarkan slash commands:", error);
   }
 });
 
