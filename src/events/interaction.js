@@ -130,5 +130,147 @@ module.exports = {
             // 4. Kasih konfirmasi ke user (Cuma dia yang liat)
             await interaction.editReply({ content: '✅ Confession kamu berhasil terkirim!' });
         }
+
+        // --- C. KALO USER PAKAI COMMAND /announce ---
+        if (interaction.isChatInputCommand() && interaction.commandName === 'announce') {
+            const tipe = interaction.options.getString('tipe') || 'embed';
+
+            if (tipe === 'embed') {
+                const modal = new ModalBuilder()
+                    .setCustomId('modal_announce_embed')
+                    .setTitle('📢 Pengumuman Embed (Kotak)');
+
+                const titleInput = new TextInputBuilder()
+                    .setCustomId('announce_title')
+                    .setLabel('Judul Pengumuman (Opsional)')
+                    .setPlaceholder('Contoh: 📢 INFORMASI PENTING!')
+                    .setStyle(TextInputStyle.Short)
+                    .setRequired(false);
+
+                const messageInput = new TextInputBuilder()
+                    .setCustomId('announce_message')
+                    .setLabel('Isi Pengumuman (Bisa Enter / Multi-baris)')
+                    .setPlaceholder('Tulis pesan pengumumanmu di sini...\nBisa enter beberapa baris & pakai emoji!')
+                    .setStyle(TextInputStyle.Paragraph)
+                    .setRequired(true);
+
+                const imageInput = new TextInputBuilder()
+                    .setCustomId('announce_image')
+                    .setLabel('Link Gambar / Banner URL (Opsional)')
+                    .setPlaceholder('https://i.imgur.com/example.png')
+                    .setStyle(TextInputStyle.Short)
+                    .setRequired(false);
+
+                modal.addComponents(
+                    new ActionRowBuilder().addComponents(titleInput),
+                    new ActionRowBuilder().addComponents(messageInput),
+                    new ActionRowBuilder().addComponents(imageInput)
+                );
+
+                return await interaction.showModal(modal);
+            } else {
+                const modal = new ModalBuilder()
+                    .setCustomId('modal_announce_biasa')
+                    .setTitle('📝 Pengumuman Teks Biasa');
+
+                const messageInput = new TextInputBuilder()
+                    .setCustomId('announce_message')
+                    .setLabel('Isi Pesan (Bisa Enter / Multi-baris)')
+                    .setPlaceholder('Tulis pesan pengumuman teks biasa di sini...')
+                    .setStyle(TextInputStyle.Paragraph)
+                    .setRequired(true);
+
+                const imageInput = new TextInputBuilder()
+                    .setCustomId('announce_image')
+                    .setLabel('Link Gambar / Lampiran (Opsional)')
+                    .setPlaceholder('https://i.imgur.com/example.png')
+                    .setStyle(TextInputStyle.Short)
+                    .setRequired(false);
+
+                modal.addComponents(
+                    new ActionRowBuilder().addComponents(messageInput),
+                    new ActionRowBuilder().addComponents(imageInput)
+                );
+
+                return await interaction.showModal(modal);
+            }
+        }
+
+        // --- D. KALO USER SUBMIT MODAL ANNOUNCEMENT EMBED ---
+        if (interaction.isModalSubmit() && interaction.customId === 'modal_announce_embed') {
+            const titleInput = (interaction.fields.getTextInputValue('announce_title') || '').trim();
+            const messageContent = interaction.fields.getTextInputValue('announce_message');
+            const imageInput = (interaction.fields.getTextInputValue('announce_image') || '').trim();
+
+            try {
+                const embed = new EmbedBuilder()
+                    .setColor('#00FFFF') // Default Cyan
+                    .setDescription(messageContent)
+                    .setTimestamp();
+
+                if (titleInput) {
+                    embed.setTitle(titleInput);
+                }
+
+                if (imageInput) {
+                    try {
+                        new URL(imageInput);
+                        embed.setImage(imageInput);
+                    } catch {
+                        // Abaikan jika URL tidak valid
+                    }
+                }
+
+                // Cek jika ada mention @everyone / @here biar notifnya masuk
+                let ping = null;
+                if (messageContent.includes('@everyone') || titleInput.includes('@everyone')) {
+                    ping = '@everyone';
+                } else if (messageContent.includes('@here') || titleInput.includes('@here')) {
+                    ping = '@here';
+                }
+
+                await interaction.channel.send({
+                    content: ping,
+                    embeds: [embed]
+                });
+
+                await interaction.reply({ 
+                    content: '✅ Pengumuman Embed berhasil dikirim ke channel ini!', 
+                    ephemeral: true 
+                });
+            } catch (error) {
+                console.error('❌ Gagal mengirim pengumuman embed:', error);
+                await interaction.reply({ 
+                    content: '❌ Gagal mengirim pengumuman. Pastikan bot memiliki izin kirim pesan & tautan di channel ini.', 
+                    ephemeral: true 
+                });
+            }
+        }
+
+        // --- E. KALO USER SUBMIT MODAL ANNOUNCEMENT TEKS BIASA ---
+        if (interaction.isModalSubmit() && interaction.customId === 'modal_announce_biasa') {
+            const messageContent = interaction.fields.getTextInputValue('announce_message');
+            const imageInput = (interaction.fields.getTextInputValue('announce_image') || '').trim();
+
+            try {
+                const sendPayload = { content: messageContent };
+                if (imageInput) {
+                    sendPayload.files = [imageInput];
+                }
+
+                await interaction.channel.send(sendPayload);
+
+                await interaction.reply({ 
+                    content: '✅ Pengumuman Teks Biasa berhasil dikirim ke channel ini!', 
+                    ephemeral: true 
+                });
+            } catch (error) {
+                console.error('❌ Gagal mengirim pengumuman teks biasa:', error);
+                await interaction.reply({ 
+                    content: '❌ Gagal mengirim pengumuman. Pastikan bot memiliki izin kirim pesan di channel ini.', 
+                    ephemeral: true 
+                });
+            }
+        }
     }
 };

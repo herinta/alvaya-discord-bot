@@ -29,25 +29,7 @@ module.exports = {
             ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
             ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-            // Tulisan "WELCOME"
-            ctx.font = 'bold 60px sans-serif';
-            ctx.fillStyle = '#ffffff';
-            ctx.fillText('WELCOME', 280, 100); // Posisi X, Y
-
-            // Tulisan Nama User
-            ctx.font = '40px sans-serif';
-            ctx.fillStyle = '#00FFFF'; // Warna Cyan
-            // Biar nama panjang gak kepotong, kita singkat kalo kepanjangan
-            let fontSize = 40;
-            let name = member.user.username.toUpperCase();
-            if (name.length > 15) name = name.substring(0, 15) + '...';
-            ctx.fillText(name, 280, 160);
-
-            // Tulisan Member Count
-            ctx.font = '20px sans-serif';
-            ctx.fillStyle = '#cccccc';
-            ctx.fillText(`Member #${member.guild.memberCount}`, 280, 200);
-
+          
             // Bikin Lingkaran Avatar
             ctx.beginPath();
             ctx.arc(125, 125, 100, 0, Math.PI * 2, true);
@@ -66,13 +48,14 @@ module.exports = {
             // --- STEP 2: BIKIN EMBED MESSAGE ---
             const welcomeEmbed = new EmbedBuilder()
                 .setColor('#00FFFF')
-                .setTitle(`Welcome to ${member.guild.name}`)
+                .setTitle('🌊 Welcome to Aquarium Lele! 🐟')
                 .setDescription(
-                    `Heyy <@${member.id}>, Welcome to **${member.guild.name}**!\n\n` +  
-                    `• Please make sure that you read the rules in.\n` +
-                    `• Pick your role in.\n` +
-                    `• If you have any trouble, feel free to DM.\n` +
-                    `• Hope u enjoy in this server! 😽😽😽`
+                    `Hii fishyyy, welcome to our little Aquarium! 🫧💙\n\n` +  
+                    `• 📜 Check the rules first!\n` +
+                    `• 🎀 Pick your roles!\n` +
+                    `• 🪪 Introduce yourself!\n` +
+                    `• 💬 Come say hi & have fun!\n\n` +
+                    `Don't be shy, come swim with us~ 🐠💙`
                 )
                 .setImage('attachment://welcome-image.png') // Ini nyambung ke nama file di atas
                 .setTimestamp()
