@@ -54,20 +54,12 @@ module.exports = {
                                 'Jangan ngumpet, sini kumpul! 🫧',
                                 '',
                                 '🔴 LIVE NOW!',
+                                `https://www.youtube.com/watch?v=${videoId}`,
                                 '@everyone'
                             ].join('\n');
 
-                            const embed = new EmbedBuilder()
-                                .setTitle(liveStream.snippet.title || '🔴 SEDANG LIVE DI YOUTUBE!')
-                                .setURL(`https://www.youtube.com/watch?v=${videoId}`)
-                                .setDescription(`Ayo tonton sekarang dan ramaikan kolom komentarnya!\n👉 **[KLIK DI SINI UNTUK MENONTON](https://www.youtube.com/watch?v=${videoId})**`)
-                                .setColor('#FF0000')
-                                .setImage(liveStream.snippet.thumbnails.high.url)
-                                .setTimestamp();
-
                             await targetChannel.send({ 
                                 content: messageContent, 
-                                embeds: [embed],
                                 allowedMentions: { parse: ['everyone'] }
                             });
                             console.log(`📢 Notifikasi Live terkirim untuk video ID: ${videoId}`);
