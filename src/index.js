@@ -72,15 +72,25 @@ client.on("ready", async () => {
               .setRequired(true)
       );
 
+  const setupRolesCmd = new SlashCommandBuilder()
+      .setName('setup-roles')
+      .setDescription('Kirim panel Select Roles ke channel #select-roles')
+      .setDefaultMemberPermissions(PermissionFlagsBits.Administrator)
+      .addChannelOption(option =>
+          option.setName('channel')
+              .setDescription('Channel tujuan (Opsional, default: channel #select-roles)')
+              .setRequired(false)
+      );
+
   try {
       // 1. Hapus Global Commands agar tidak duplikat dengan Guild Commands di Discord
       await client.application.commands.set([]);
 
       // 2. Daftarkan hanya ke level Server/Guild (Langsung aktif & tidak dobel)
       for (const guild of client.guilds.cache.values()) {
-          await guild.commands.set([announceCmd, editCmd]);
+          await guild.commands.set([announceCmd, editCmd, setupRolesCmd]);
       }
-      console.log("✅ Command /announce & /edit-message berhasil diperbarui!");
+      console.log("✅ Command /announce, /edit-message, & /setup-roles berhasil diperbarui!");
   } catch (error) {
       console.error("❌ Gagal mendaftarkan slash commands:", error);
   }
