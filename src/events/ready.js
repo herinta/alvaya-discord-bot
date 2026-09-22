@@ -13,6 +13,21 @@ module.exports = {
         console.log(`🚀 Siap meluncur! Login sebagai ${client.user.tag}`);
         console.log(`✅ Fitur YouTube Live Tracker aktif!`);
 
+        // Proteksi Server Whitelist (Auto-leave server asing saat start)
+        const allowedGuilds = (process.env.ALLOWED_GUILD_IDS || process.env.ALLOWED_GUILD_ID || '')
+            .split(',')
+            .map(id => id.trim())
+            .filter(Boolean);
+
+        if (allowedGuilds.length > 0) {
+            for (const guild of client.guilds.cache.values()) {
+                if (!allowedGuilds.includes(guild.id)) {
+                    console.log(`⛔ Keluar otomatis saat start dari server asing: ${guild.name} (${guild.id})`);
+                    await guild.leave().catch(() => {});
+                }
+            }
+        }
+
         // ==========================================
         // 2. KONFIGURASI YOUTUBE
         // ==========================================
