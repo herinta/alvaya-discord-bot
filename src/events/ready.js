@@ -14,7 +14,7 @@ module.exports = {
         console.log(`✅ Fitur YouTube Live Tracker aktif!`);
 
         // Proteksi Server Whitelist (Auto-leave server asing saat start)
-        const allowedGuilds = (process.env.ALLOWED_GUILD_IDS || process.env.ALLOWED_GUILD_ID || '')
+        const allowedGuilds = (process.env.ALLOWED_GUILD_IDS || process.env.ALLOWED_GUILD_ID || '1472819152979886133')
             .split(',')
             .map(id => id.trim())
             .filter(Boolean);

@@ -2,7 +2,7 @@ const { Events } = require('discord.js');
 
 // ID Server yang diizinkan (Bisa diatur di .env atau langsung di sini)
 // Jika punya lebih dari 1 server, pisahkan dengan koma di .env: ALLOWED_GUILD_IDS=id1,id2
-const ALLOWED_GUILD_IDS = (process.env.ALLOWED_GUILD_IDS || process.env.ALLOWED_GUILD_ID || '')
+const ALLOWED_GUILD_IDS = (process.env.ALLOWED_GUILD_IDS || process.env.ALLOWED_GUILD_ID || '1472819152979886133')
     .split(',')
     .map(id => id.trim())
     .filter(Boolean);
