@@ -13,13 +13,15 @@ const SELECT_ROLES_CHANNEL_ID = process.env.SELECT_ROLES_CHANNEL_ID || '14728261
 const ROLE_CONFIGS = {
     // 1. Gender Roles (Exclusive: pilih salah satu)
     role_fishie_boy: {
-        name: 'Fishie Boy',
+        name: 'Jantan',
+        aliases: ['jantan', 'fishie boy'],
         group: 'gender',
         opposite: 'role_fishie_girl',
         emoji: '🐟'
     },
     role_fishie_girl: {
-        name: 'Fishie Girl',
+        name: 'Betina',
+        aliases: ['betina', 'fishie girl'],
         group: 'gender',
         opposite: 'role_fishie_boy',
         emoji: '🧜‍♀️'
@@ -28,12 +30,14 @@ const ROLE_CONFIGS = {
     // 2. Age Stage Roles (Exclusive: pilih salah satu)
     role_baby_fish: {
         name: 'Baby Fish',
+        aliases: ['baby fish', 'under 18', '<18', '< 18'],
         group: 'age',
         opposite: 'role_adult_fish',
         emoji: '🐥'
     },
     role_adult_fish: {
         name: 'Adult Fish',
+        aliases: ['adult fish', '18+'],
         group: 'age',
         opposite: 'role_baby_fish',
         emoji: '🐳'
@@ -42,30 +46,34 @@ const ROLE_CONFIGS = {
     // 3. Creator Roles (Multi-choice / Bebas pilih lebih dari satu)
     role_clipper: {
         name: 'Clipper',
+        aliases: ['clipper'],
         group: 'creator',
         emoji: '✂️'
     },
     role_artist: {
         name: 'Artist',
+        aliases: ['artist'],
         group: 'creator',
         emoji: '🎨'
     },
     role_editor: {
         name: 'Editor',
+        aliases: ['editor'],
         group: 'creator',
         emoji: '🎬'
     }
 };
 
 /**
- * Fungsi untuk mencari Role di Server berdasarkan nama (toleran terhadap emoji/huruf besar-kecil)
+ * Fungsi untuk mencari Role di Server berdasarkan nama/alias (toleran terhadap emoji/huruf besar-kecil)
  */
-function findGuildRole(guild, roleName) {
-    const search = roleName.toLowerCase();
-    return guild.roles.cache.find(r => 
-        r.name.toLowerCase() === search || 
-        r.name.toLowerCase().includes(search)
-    );
+function findGuildRole(guild, config) {
+    if (!config) return null;
+    const aliases = config.aliases || [config.name.toLowerCase()];
+    return guild.roles.cache.find(r => {
+        const roleName = r.name.toLowerCase();
+        return aliases.some(alias => roleName.includes(alias.toLowerCase()));
+    });
 }
 
 /**
@@ -138,17 +146,17 @@ function createSelectRolesPanels() {
             .setCustomId('role_clipper')
             .setLabel('Clipper')
             .setEmoji('✂️')
-            .setStyle(ButtonStyle.Secondary),
+            .setStyle(ButtonStyle.Primary),
         new ButtonBuilder()
             .setCustomId('role_artist')
             .setLabel('Artist')
             .setEmoji('🎨')
-            .setStyle(ButtonStyle.Secondary),
+            .setStyle(ButtonStyle.Primary),
         new ButtonBuilder()
             .setCustomId('role_editor')
             .setLabel('Editor')
             .setEmoji('🎬')
-            .setStyle(ButtonStyle.Secondary)
+            .setStyle(ButtonStyle.Primary)
     );
 
     return [
@@ -232,10 +240,10 @@ module.exports = {
         }
 
         // Cari role target di server
-        const targetRole = findGuildRole(guild, config.name);
+        const targetRole = findGuildRole(guild, config);
         if (!targetRole) {
             return interaction.reply({
-                content: `❌ Role **${config.name}** belum dibuat di server ini. Silakan minta Admin membuat role tersebut terlebih dahulu.`,
+                content: `❌ Role **${config.name}** belum ditemukan di server ini. Pastikan nama role mengandung kata "${config.name}".`,
                 ephemeral: true
             });
         }
@@ -265,7 +273,7 @@ module.exports = {
             if (config.opposite) {
                 const oppositeConfig = ROLE_CONFIGS[config.opposite];
                 if (oppositeConfig) {
-                    const oppositeRole = findGuildRole(guild, oppositeConfig.name);
+                    const oppositeRole = findGuildRole(guild, oppositeConfig);
                     if (oppositeRole && member.roles.cache.has(oppositeRole.id)) {
                         await member.roles.remove(oppositeRole);
                     }
