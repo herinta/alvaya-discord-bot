@@ -1,4 +1,8 @@
 const { Events, ActionRowBuilder, StringSelectMenuBuilder, EmbedBuilder } = require('discord.js');
+const config = require('../config/config');
+const { createRulesEmbed, createConfessButton } = require('../handlers/confessHandler');
+const { createIntroPanelEmbed, createIntroButton } = require('../handlers/introHandler');
+const { handleChatMessage } = require('../handlers/levelingHandler');
 
 module.exports = {
     name: Events.MessageCreate,
@@ -7,25 +11,29 @@ module.exports = {
         if (message.author.bot) return;
 
         // ====================================================
-        // 1. COMMAND: !ping
+        // 1. PROSES XP CHAT LEVELING (Hanya jika fitur aktif)
+        // ====================================================
+        if (config.features?.leveling) {
+            await handleChatMessage(message);
+        }
+
+        // ====================================================
+        // 2. COMMAND: !ping
         // ====================================================
         if (message.content === '!ping') {
-            message.reply('pong 🏓');
+            return message.reply('pong 🏓');
         }
 
         // ====================================================
-        // 2. COMMAND: !testwelcome (Untuk testing UI/UX Client)
+        // 3. COMMAND: !testwelcome (Untuk testing UI/UX Client)
         // ====================================================
         if (message.content === '!testwelcome') {
-            // Memicu event GuildMemberAdd seolah-olah user yang mengetik command baru saja masuk server
             message.client.emit(Events.GuildMemberAdd, message.member);
-            
-            // Memberikan reaction centang di pesan !testwelcome
-            message.react('✅').catch(console.error);
+            return message.react('✅').catch(console.error);
         }
 
         // ====================================================
-        // 3. COMMAND: !setupvoice (Hanya untuk Admin Server)
+        // 4. COMMAND: !setupvoice (Hanya untuk Admin Server)
         // ====================================================
         if (message.content === '!setupvoice' && message.member?.permissions.has('Administrator')) {
             const embed = new EmbedBuilder()
@@ -55,11 +63,30 @@ module.exports = {
                     ])
             );
 
-            // Mengirim embed dan menu dropdown ke channel
             await message.channel.send({ embeds: [embed], components: [pcMenu, mobileMenu] });
-            
-            // Menghapus pesan command '!setupvoice' agar channel tetap rapi
-            message.delete().catch(console.error); 
+            return message.delete().catch(console.error); 
+        }
+
+        // ====================================================
+        // 5. COMMAND: !setupconfess
+        // ====================================================
+        if (message.content === '!setupconfess') {
+            await message.delete().catch(() => {});
+            return message.channel.send({
+                embeds: [createRulesEmbed()],
+                components: [createConfessButton()]
+            });
+        }
+
+        // ====================================================
+        // 6. COMMAND: !setupintro (Setup Panel Introduction)
+        // ====================================================
+        if (message.content === '!setupintro') {
+            await message.delete().catch(() => {});
+            return message.channel.send({
+                embeds: [createIntroPanelEmbed()],
+                components: [createIntroButton()]
+            });
         }
     }
-};
+};

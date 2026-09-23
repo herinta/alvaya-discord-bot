@@ -1,4 +1,5 @@
 const { Events } = require('discord.js');
+const config = require('../config/config');
 
 module.exports = {
     name: Events.VoiceStateUpdate,
@@ -6,9 +7,8 @@ module.exports = {
         const oldChannel = oldState.channel;
 
         if (oldChannel) {
-            // ⚠️ SAMAKAN DENGAN ID KATEGORI DI GAME LOUNGE
-            const CATEGORY_ID = '1472829010747588639'; 
-            const LOBBY_VOICE_ID = '1518159971315875990'; // ✅ ID Voice Create Gaming
+            const CATEGORY_ID = config.voice.gameCategory; 
+            const LOBBY_VOICE_ID = config.voice.gameLobbyVoice;
 
             if (oldChannel.parentId === CATEGORY_ID) {
                 if (oldChannel.id === LOBBY_VOICE_ID) return;

@@ -1,131 +1,63 @@
 /**
  * =========================================
- *  RENDER DISCORD BOT STABLE VERSION
+ *  ALVAYA DISCORD BOT - ENTRY POINT
  * =========================================
  */
 
 require('dns').setDefaultResultOrder('ipv4first');
 require('dotenv').config();
-const fs = require('fs');
-const path = require('path');
+
 const http = require('http');
 const https = require('https');
+const { Client, GatewayIntentBits } = require('discord.js');
+const config = require('./config/config');
+const { loadCommands } = require('./handlers/commandHandler');
+const { loadEvents } = require('./handlers/eventHandler');
+const { initDatabase } = require('./database/db');
 
-const { 
-  Client, 
-  GatewayIntentBits, 
-  SlashCommandBuilder, 
-  PermissionFlagsBits 
-} = require('discord.js');
+console.log('------------------------------------------------');
+console.log('🚀 Starting Alvaya Bot...');
 
-console.log("------------------------------------------------");
-console.log("🚀 Starting bot...");
-
+// HTTP Keepalive Server (untuk hosting seperti Render / Pterodactyl)
 const PORT = process.env.PORT || 10000;
 http.createServer((req, res) => {
-  res.writeHead(200);
-  res.end('Bot is alive ✅');
+    res.writeHead(200);
+    res.end('Alvaya Bot is alive ✅');
 }).listen(PORT, () => console.log(`🌍 HTTP server running on port ${PORT}`));
 
 if (process.env.RENDER_EXTERNAL_URL) {
-  setInterval(() => {
-    https.get(process.env.RENDER_EXTERNAL_URL);
-  }, 5 * 60 * 1000);
+    setInterval(() => {
+        https.get(process.env.RENDER_EXTERNAL_URL);
+    }, 5 * 60 * 1000);
 }
 
+// Inisialisasi Discord Client
 const client = new Client({
-  intents: [
-    GatewayIntentBits.Guilds,
-    GatewayIntentBits.GuildMessages,
-    GatewayIntentBits.GuildMembers,
-    GatewayIntentBits.MessageContent,
-    GatewayIntentBits.GuildVoiceStates // 🔴 WAJIB UNTUK VOICE FITUR
-  ],
-  ws: { compress: false }
+    intents: [
+        GatewayIntentBits.Guilds,
+        GatewayIntentBits.GuildMessages,
+        GatewayIntentBits.GuildMembers,
+        GatewayIntentBits.MessageContent,
+        GatewayIntentBits.GuildVoiceStates
+    ],
+    ws: { compress: false }
 });
 
-// Pendaftaran /announce
-client.on("ready", async () => {
-  console.log(`🎉 BOT READY sebagai ${client.user.tag}`);
+// Load Commands & Events
+loadCommands(client);
+loadEvents(client);
 
-  const announceCmd = new SlashCommandBuilder()
-      .setName('announce')
-      .setDescription('Buat pengumuman (Multi-baris / Embed / Teks biasa)')
-      .setDefaultMemberPermissions(PermissionFlagsBits.Administrator)
-      .addStringOption(option =>
-          option.setName('tipe')
-              .setDescription('Pilih tampilan pengumuman (Embed / Teks Biasa)')
-              .setRequired(true)
-              .addChoices(
-                  { name: '📦 Embed (Kotak dengan Warna & Judul)', value: 'embed' },
-                  { name: '📝 Teks Biasa (Pesan Standar)', value: 'biasa' }
-              )
-      );
-
-  const editCmd = new SlashCommandBuilder()
-      .setName('edit-message')
-      .setDescription('Edit pesan atau pengumuman yang pernah dikirim oleh bot')
-      .setDefaultMemberPermissions(PermissionFlagsBits.Administrator)
-      .addStringOption(option =>
-          option.setName('message_id')
-              .setDescription('ID pesan bot yang ingin diedit (Klik kanan pesan -> Copy Message ID)')
-              .setRequired(true)
-      );
-
-  const addRolesCmd = new SlashCommandBuilder()
-      .setName('add-roles')
-      .setDescription('Buat panel select roles kustom lewat formulir modal (popup)')
-      .setDefaultMemberPermissions(PermissionFlagsBits.Administrator)
-      .addChannelOption(option =>
-          option.setName('channel')
-              .setDescription('Channel tempat panel akan dikirim (Opsional, default: channel ini)')
-              .setRequired(false)
-      );
-
-  const editRolesCmd = new SlashCommandBuilder()
-      .setName('edit-roles')
-      .setDescription('Edit judul, deskripsi, atau tombol pada panel role yang sudah ada')
-      .setDefaultMemberPermissions(PermissionFlagsBits.Administrator)
-      .addStringOption(option =>
-          option.setName('message_id')
-              .setDescription('ID pesan panel role yang ingin diedit (Klik kanan pesan -> Copy Message ID)')
-              .setRequired(true)
-      );
-
-  try {
-      // 1. Hapus Global Commands agar tidak duplikat dengan Guild Commands di Discord
-      await client.application.commands.set([]);
-
-      // 2. Daftarkan hanya ke level Server/Guild (Langsung aktif & tidak dobel)
-      for (const guild of client.guilds.cache.values()) {
-          await guild.commands.set([announceCmd, editCmd, addRolesCmd, editRolesCmd]);
-      }
-      console.log("✅ Command /announce, /edit-message, /add-roles, & /edit-roles berhasil diperbarui!");
-  } catch (error) {
-      console.error("❌ Gagal mendaftarkan slash commands:", error);
-  }
-});
-
-// Event Handler Dinamis
-const eventsPath = path.join(__dirname, 'events');
-if (fs.existsSync(eventsPath)) {
-  const eventFiles = fs.readdirSync(eventsPath).filter(file => file.endsWith('.js'));
-  for (const file of eventFiles) {
-    const event = require(path.join(eventsPath, file));
-    if (event.once) {
-      client.once(event.name, (...args) => event.execute(...args));
-    } else {
-      client.on(event.name, (...args) => event.execute(...args));
-    }
-  }
-  console.log(`✅ Loaded ${eventFiles.length} event(s)`);
+// Inisialisasi Database (hanya jika fitur leveling aktif)
+if (config.features?.leveling) {
+    initDatabase().catch(err => {
+        console.warn('⚠️ Gagal inisialisasi koneksi database:', err.message);
+    });
 }
 
+// Login Bot
 if (!process.env.DISCORD_TOKEN) {
-  console.error("❌ DISCORD_TOKEN tidak ditemukan!");
-  process.exit(1);
+    console.error('❌ DISCORD_TOKEN tidak ditemukan di file .env!');
+    process.exit(1);
 }
 
-setTimeout(() => {
-  client.login(process.env.DISCORD_TOKEN).catch(console.error);
-}, 15000);
+client.login(process.env.DISCORD_TOKEN).catch(console.error);

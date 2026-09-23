@@ -1,18 +1,11 @@
-const { AttachmentBuilder, EmbedBuilder } = require('discord.js');
+const { Events, AttachmentBuilder, EmbedBuilder } = require('discord.js');
 const { createCanvas, loadImage } = require('@napi-rs/canvas');
 const path = require('path');
 const fs = require('fs');
-
-// --- KONFIGURASI ID (GANTI DISINI YA!) ---
-const CONFIG = {
-    WELCOME_CHANNEL_ID: '1472873395975618590', // ID Channel tempat welcome muncul
-    RULES_CHANNEL_ID: '123456789012345678',   // ID Channel rules
-    VERIFY_CHANNEL_ID: '123456789012345678',  // ID Channel verify
-    MOD_ROLE_ID: '123456789012345678'         // ID Role Admin/Mod
-};
+const config = require('../config/config');
 
 module.exports = {
-    name: 'guildMemberAdd',
+    name: Events.GuildMemberAdd,
     async execute(member) {
         try {
             // --- STEP 1: BIKIN GAMBAR (CANVAS) ---
@@ -20,17 +13,21 @@ module.exports = {
             const ctx = canvas.getContext('2d');
 
             const bgPath = path.join(__dirname, '../../assets/welcome.jpg');
-            const bgBuffer = fs.readFileSync(bgPath); 
-            const background = await loadImage(bgBuffer); // Load dari Buffer, bukan path string
-            
-            ctx.drawImage(background, 0, 0, canvas.width, canvas.height);
+            if (fs.existsSync(bgPath)) {
+                const bgBuffer = fs.readFileSync(bgPath); 
+                const background = await loadImage(bgBuffer);
+                ctx.drawImage(background, 0, 0, canvas.width, canvas.height);
+            } else {
+                ctx.fillStyle = '#1e1f22';
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+            }
 
             // Bikin kotak transparan hitam biar tulisan kebaca
             ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
             ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-          
             // Bikin Lingkaran Avatar
+            ctx.save();
             ctx.beginPath();
             ctx.arc(125, 125, 100, 0, Math.PI * 2, true);
             ctx.closePath();
@@ -40,10 +37,10 @@ module.exports = {
             const avatarURL = member.user.displayAvatarURL({ extension: 'png' });
             const avatar = await loadImage(avatarURL);
             ctx.drawImage(avatar, 25, 25, 200, 200);
+            ctx.restore();
 
             // Bungkus jadi file attachment
             const attachment = new AttachmentBuilder(await canvas.encode('png'), { name: 'welcome-image.png' });
-
 
             // --- STEP 2: BIKIN EMBED MESSAGE ---
             const welcomeEmbed = new EmbedBuilder()
@@ -57,18 +54,20 @@ module.exports = {
                     `• 💬 Come say hi & have fun!\n\n` +
                     `Don't be shy, come swim with us~ 🐠💙`
                 )
-                .setImage('attachment://welcome-image.png') // Ini nyambung ke nama file di atas
+                .setImage('attachment://welcome-image.png')
                 .setTimestamp()
                 .setFooter({ text: `Member #${member.guild.memberCount}`, iconURL: member.guild.iconURL() });
 
-
             // --- STEP 3: KIRIM KE DISCORD ---
-            const channel = member.guild.channels.cache.get(CONFIG.WELCOME_CHANNEL_ID);
+            const channel = member.guild.channels.cache.get(config.channels.welcome);
             
-            if (!channel) return console.log('❌ Channel Welcome gak ketemu! Cek ID-nya.');
+            if (!channel) {
+                console.log('❌ Channel Welcome gak ketemu! Cek ID-nya di config.js.');
+                return;
+            }
 
             await channel.send({
-                content: `Hello <@${member.id}>!`, // Mention luar (biar notif)
+                content: `Hello <@${member.id}>!`,
                 embeds: [welcomeEmbed],
                 files: [attachment]
             });
