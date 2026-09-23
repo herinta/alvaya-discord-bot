@@ -72,16 +72,6 @@ client.on("ready", async () => {
               .setRequired(true)
       );
 
-  const setupRolesCmd = new SlashCommandBuilder()
-      .setName('setup-roles')
-      .setDescription('Kirim panel Select Roles bawaan ke channel #select-roles')
-      .setDefaultMemberPermissions(PermissionFlagsBits.Administrator)
-      .addChannelOption(option =>
-          option.setName('channel')
-              .setDescription('Channel tujuan (Opsional, default: channel #select-roles)')
-              .setRequired(false)
-      );
-
   const addRolesCmd = new SlashCommandBuilder()
       .setName('add-roles')
       .setDescription('Buat panel select roles kustom lewat formulir modal (popup)')
@@ -98,9 +88,9 @@ client.on("ready", async () => {
 
       // 2. Daftarkan hanya ke level Server/Guild (Langsung aktif & tidak dobel)
       for (const guild of client.guilds.cache.values()) {
-          await guild.commands.set([announceCmd, editCmd, setupRolesCmd, addRolesCmd]);
+          await guild.commands.set([announceCmd, editCmd, addRolesCmd]);
       }
-      console.log("✅ Command /announce, /edit-message, /setup-roles, & /add-roles berhasil diperbarui!");
+      console.log("✅ Command /announce, /edit-message, & /add-roles berhasil diperbarui!");
   } catch (error) {
       console.error("❌ Gagal mendaftarkan slash commands:", error);
   }

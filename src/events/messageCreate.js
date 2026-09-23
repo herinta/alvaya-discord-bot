@@ -61,23 +61,5 @@ module.exports = {
             // Menghapus pesan command '!setupvoice' agar channel tetap rapi
             message.delete().catch(console.error); 
         }
-
-        // ====================================================
-        // 4. COMMAND: !setuproles (Untuk Memunculkan Panel Select Roles)
-        // ====================================================
-        if (message.content === '!setuproles' && (message.member?.permissions.has('Administrator') || message.guild?.ownerId === message.author.id)) {
-            const { createSelectRolesPanels, SELECT_ROLES_CHANNEL_ID } = require('./select-roles.js');
-            
-            // Tentukan channel target (Bisa di channel tempat mengetik command, atau di channel ID khusus yang diset)
-            const targetChannel = message.guild.channels.cache.get(SELECT_ROLES_CHANNEL_ID) || message.channel;
-            
-            const panels = createSelectRolesPanels();
-            for (const panel of panels) {
-                await targetChannel.send(panel);
-            }
-
-            // Hapus command trigger dari admin agar channel tetap rapi
-            message.delete().catch(console.error);
-        }
     }
 };
