@@ -92,7 +92,7 @@ module.exports = {
             const descInput = new TextInputBuilder()
                 .setCustomId('input_panel_desc')
                 .setLabel('Deskripsi Panel (Multi-baris)')
-                .setPlaceholder('Pilih role yang paling menggambarkan keahlianmu~ 🫧\n\n✂️ Clipper — Membuat clip\n🎨 Artist — Menggambar\n🎬 Editor — Video editing')
+                .setPlaceholder('Pilih role yang paling menggambarkan dirimu / keahlianmu~ 🫧')
                 .setStyle(TextInputStyle.Paragraph)
                 .setRequired(true);
 
