@@ -11,7 +11,7 @@ const {
 } = require('discord.js');
 
 /**
- * Parser pintar untuk membaca baris role dari form modal
+ * Parser pintar untuk membaca baris role dari form modal (Format: Emoji | Nama Role)
  */
 function parseRoleLines(rawText) {
     const lines = rawText.split('\n').map(l => l.trim()).filter(Boolean);
@@ -22,20 +22,7 @@ function parseRoleLines(rawText) {
             const parts = line.split('|').map(p => p.trim());
             const emoji = parts[0] || '🏷️';
             const roleName = parts[1] || '';
-            const description = parts[2] || '';
-            if (roleName) results.push({ emoji, roleName, description });
-        } else if (line.includes('—') || line.includes('-')) {
-            const parts = line.split(/[—-]/).map(p => p.trim());
-            const firstPart = parts[0];
-            const description = parts[1] || '';
-            const words = firstPart.split(/\s+/);
-            let emoji = '🏷️';
-            let roleName = firstPart;
-            if (words.length > 1 && /\p{Extended_Pictographic}/u.test(words[0])) {
-                emoji = words[0];
-                roleName = words.slice(1).join(' ');
-            }
-            if (roleName) results.push({ emoji, roleName, description });
+            if (roleName) results.push({ emoji, roleName });
         } else {
             const words = line.split(/\s+/);
             let emoji = '🏷️';
@@ -44,7 +31,7 @@ function parseRoleLines(rawText) {
                 emoji = words[0];
                 roleName = words.slice(1).join(' ');
             }
-            if (roleName) results.push({ emoji, roleName, description: '' });
+            if (roleName) results.push({ emoji, roleName });
         }
     }
     return results;
@@ -104,23 +91,23 @@ module.exports = {
 
             const descInput = new TextInputBuilder()
                 .setCustomId('input_panel_desc')
-                .setLabel('Deskripsi / Petunjuk')
-                .setPlaceholder('Pilih role yang paling menggambarkan keahlianmu~ 🫧')
+                .setLabel('Deskripsi Panel (Multi-baris)')
+                .setPlaceholder('Pilih role yang paling menggambarkan keahlianmu~ 🫧\n\n✂️ Clipper — Membuat clip\n🎨 Artist — Menggambar\n🎬 Editor — Video editing')
                 .setStyle(TextInputStyle.Paragraph)
                 .setRequired(true);
 
             const rolesInput = new TextInputBuilder()
                 .setCustomId('input_panel_roles')
-                .setLabel('Daftar Role (Emoji | Nama Role | Info)')
-                .setPlaceholder('✂️ | Clipper | Membuat clip\n🎨 | Artist | Menggambar / Ilustrasi\n🎬 | Editor | Video editing')
+                .setLabel('Tombol Role (Format: Emoji | Nama Role)')
+                .setPlaceholder('✂️ | Clipper\n🎨 | Artist\n🎬 | Editor')
                 .setStyle(TextInputStyle.Paragraph)
                 .setRequired(true);
 
             const modeInput = new TextInputBuilder()
                 .setCustomId('input_panel_mode')
-                .setLabel('Pilihan (Bebas / Hanya 1)')
-                .setPlaceholder('Bebas (Bisa pilih banyak) atau Hanya 1')
-                .setValue('Bebas')
+                .setLabel('Mode Pilihan (0 = Bebas, 1 = Hanya 1)')
+                .setPlaceholder('0 untuk Bebas, 1 untuk Hanya 1 role')
+                .setValue('0')
                 .setStyle(TextInputStyle.Short)
                 .setRequired(false);
 
@@ -153,17 +140,16 @@ module.exports = {
             const title = interaction.fields.getTextInputValue('input_panel_title');
             const desc = interaction.fields.getTextInputValue('input_panel_desc');
             const rolesRaw = interaction.fields.getTextInputValue('input_panel_roles');
-            const modeRaw = interaction.fields.getTextInputValue('input_panel_mode') || 'Bebas';
+            const modeRaw = interaction.fields.getTextInputValue('input_panel_mode') || '0';
             const colorRaw = interaction.fields.getTextInputValue('input_panel_color') || '#29b6f6';
 
-            const isExclusive = modeRaw.toLowerCase().includes('1') || 
-                                modeRaw.toLowerCase().includes('hanya') || 
-                                modeRaw.toLowerCase().includes('single');
+            // 1 = Eksklusif (Hanya 1 role), 0 = Bebas (Bisa banyak)
+            const isExclusive = modeRaw.trim() === '1';
 
             const parsedRoles = parseRoleLines(rolesRaw);
             if (parsedRoles.length === 0) {
                 return interaction.reply({
-                    content: '❌ Gagal membuat panel: Daftar role tidak boleh kosong!',
+                    content: '❌ Gagal membuat panel: Daftar tombol role tidak boleh kosong!',
                     ephemeral: true
                 });
             }
@@ -174,24 +160,10 @@ module.exports = {
                 embedColor = colorRaw.trim();
             }
 
-            // Susun teks Deskripsi Embed
-            let fullDescription = desc + '\n\n';
-            for (const item of parsedRoles) {
-                if (item.description) {
-                    fullDescription += `${item.emoji} **${item.roleName}** — ${item.description}\n`;
-                } else {
-                    fullDescription += `${item.emoji} **${item.roleName}**\n`;
-                }
-            }
-
-            if (isExclusive) {
-                fullDescription += '\n*Role ini bersifat eksklusif (hanya boleh memilih 1 role).* 🫧';
-            }
-
             const embed = new EmbedBuilder()
                 .setColor(embedColor)
                 .setTitle(title)
-                .setDescription(fullDescription.trim());
+                .setDescription(desc.trim());
 
             // Buat Tombol Interaktif (Maksimal 5 tombol per ActionRow)
             const actionRows = [];
