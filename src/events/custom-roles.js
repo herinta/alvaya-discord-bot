@@ -413,10 +413,7 @@ module.exports = {
                 // Jika user sudah punya role -> Lepas role (Toggle OFF)
                 if (hasRole) {
                     await member.roles.remove(targetRole);
-                    return interaction.reply({
-                        content: `🗑️ Role **${targetRole.name}** telah dihapus dari profilmu.`,
-                        ephemeral: true
-                    });
+                    return await interaction.deferUpdate();
                 }
 
                 // Jika mode Eksklusif (Single-select), lepas role-role lain yang ada di panel yang sama
@@ -437,10 +434,7 @@ module.exports = {
 
                 // Tambahkan role ke user (Toggle ON)
                 await member.roles.add(targetRole);
-                return interaction.reply({
-                    content: `✅ Kamu berhasil mendapatkan role **${targetRole.name}**!`,
-                    ephemeral: true
-                });
+                return await interaction.deferUpdate();
 
             } catch (error) {
                 console.error(`❌ Error dynrole:`, error);
