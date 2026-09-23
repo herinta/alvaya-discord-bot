@@ -105,8 +105,8 @@ module.exports = {
 
             const modeInput = new TextInputBuilder()
                 .setCustomId('input_panel_mode')
-                .setLabel('Mode Pilihan (0 = Bebas, 1 = Hanya 1)')
-                .setPlaceholder('0 untuk Bebas, 1 untuk Hanya 1 role')
+                .setLabel('Mode Pilihan (0 = Multi-select, 1 = Single-select)')
+                .setPlaceholder('0 = Multi-select, 1 = Single-select')
                 .setValue('0')
                 .setStyle(TextInputStyle.Short)
                 .setRequired(false);
@@ -143,8 +143,8 @@ module.exports = {
             const modeRaw = interaction.fields.getTextInputValue('input_panel_mode') || '0';
             const colorRaw = interaction.fields.getTextInputValue('input_panel_color') || '#29b6f6';
 
-            // 1 = Eksklusif (Hanya 1 role), 0 = Bebas (Bisa banyak)
-            const isExclusive = modeRaw.trim() === '1';
+            // 1 = Single-select (Hanya 1 role), 0 = Multi-select (Bisa banyak)
+            const isExclusive = modeRaw.trim() === '1' || modeRaw.toLowerCase().includes('single');
 
             const parsedRoles = parseRoleLines(rolesRaw);
             if (parsedRoles.length === 0) {
