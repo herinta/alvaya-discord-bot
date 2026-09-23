@@ -105,7 +105,7 @@ module.exports = {
 
             const modeInput = new TextInputBuilder()
                 .setCustomId('input_panel_mode')
-                .setLabel('Mode Pilihan (0 = Multi-select, 1 = Single-select)')
+                .setLabel('Pilihan (0: Multi-select, 1: Single)')
                 .setPlaceholder('0 = Multi-select, 1 = Single-select')
                 .setValue('0')
                 .setStyle(TextInputStyle.Short)
