@@ -64,7 +64,7 @@ module.exports = {
     async execute(interaction) {
         
         // ==========================================
-        // 1. SLASH COMMAND: /add-roles (Buka Form Modal)
+        // 1. SLASH COMMAND: /add-roles (Buka Form Modal Baru)
         // ==========================================
         if (interaction.isChatInputCommand() && interaction.commandName === 'add-roles') {
             if (!hasStaffAccess(interaction)) {
@@ -131,10 +131,126 @@ module.exports = {
         }
 
         // ==========================================
-        // 2. SUBMIT FORM MODAL: modal_add_roles_*
+        // 2. SLASH COMMAND: /edit-roles (Buka Form Modal Pre-filled)
         // ==========================================
-        if (interaction.isModalSubmit() && interaction.customId.startsWith('modal_add_roles_')) {
-            const targetChannelId = interaction.customId.replace('modal_add_roles_', '');
+        if (interaction.isChatInputCommand() && interaction.commandName === 'edit-roles') {
+            if (!hasStaffAccess(interaction)) {
+                return interaction.reply({
+                    content: '❌ Kamu tidak memiliki izin untuk menggunakan perintah ini.',
+                    ephemeral: true
+                });
+            }
+
+            const messageId = interaction.options.getString('message_id').trim();
+            let targetMessage = null;
+
+            try {
+                targetMessage = await interaction.channel.messages.fetch(messageId);
+            } catch {
+                // Coba cari di channel lain di server jika tidak ketemu di channel saat ini
+                for (const ch of interaction.guild.channels.cache.values()) {
+                    if (ch.isTextBased() && ch.id !== interaction.channelId) {
+                        try {
+                            targetMessage = await ch.messages.fetch(messageId);
+                            if (targetMessage) break;
+                        } catch {}
+                    }
+                }
+            }
+
+            if (!targetMessage || targetMessage.author.id !== interaction.client.user.id) {
+                return interaction.reply({
+                    content: '❌ Pesan panel tidak ditemukan atau bukan pesan yang dikirim oleh bot ini.',
+                    ephemeral: true
+                });
+            }
+
+            const existingEmbed = targetMessage.embeds[0];
+            const existingTitle = existingEmbed ? (existingEmbed.title || '') : '';
+            const existingDesc = existingEmbed ? (existingEmbed.description || '') : '';
+            const existingColor = existingEmbed && existingEmbed.hexColor ? existingEmbed.hexColor : '#29b6f6';
+
+            const existingRolesLines = [];
+            let existingMode = '0';
+
+            for (const row of targetMessage.components) {
+                for (const btn of row.components) {
+                    if (btn.customId) {
+                        const emojiStr = btn.emoji ? (btn.emoji.id ? `<:${btn.emoji.name}:${btn.emoji.id}>` : btn.emoji.name) : '🏷️';
+                        existingRolesLines.push(`${emojiStr} | ${btn.label || ''}`);
+                        if (btn.customId.includes('exclusive')) {
+                            existingMode = '1';
+                        }
+                    }
+                }
+            }
+
+            const modal = new ModalBuilder()
+                .setCustomId(`modal_edit_roles_${targetMessage.channelId}_${targetMessage.id}`)
+                .setTitle('Edit Panel Select Roles');
+
+            const titleInput = new TextInputBuilder()
+                .setCustomId('input_panel_title')
+                .setLabel('Judul Panel')
+                .setValue(existingTitle)
+                .setStyle(TextInputStyle.Short)
+                .setRequired(true);
+
+            const descInput = new TextInputBuilder()
+                .setCustomId('input_panel_desc')
+                .setLabel('Deskripsi Panel (Multi-baris)')
+                .setValue(existingDesc)
+                .setStyle(TextInputStyle.Paragraph)
+                .setRequired(true);
+
+            const rolesInput = new TextInputBuilder()
+                .setCustomId('input_panel_roles')
+                .setLabel('Tombol Role (Format: Emoji | Nama Role)')
+                .setValue(existingRolesLines.length > 0 ? existingRolesLines.join('\n') : '✂️ | Clipper')
+                .setStyle(TextInputStyle.Paragraph)
+                .setRequired(true);
+
+            const modeInput = new TextInputBuilder()
+                .setCustomId('input_panel_mode')
+                .setLabel('Pilihan (0: Multi-select, 1: Single)')
+                .setValue(existingMode)
+                .setStyle(TextInputStyle.Short)
+                .setRequired(false);
+
+            const colorInput = new TextInputBuilder()
+                .setCustomId('input_panel_color')
+                .setLabel('Warna Border Hex (Opsional)')
+                .setValue(existingColor)
+                .setStyle(TextInputStyle.Short)
+                .setRequired(false);
+
+            modal.addComponents(
+                new ActionRowBuilder().addComponents(titleInput),
+                new ActionRowBuilder().addComponents(descInput),
+                new ActionRowBuilder().addComponents(rolesInput),
+                new ActionRowBuilder().addComponents(modeInput),
+                new ActionRowBuilder().addComponents(colorInput)
+            );
+
+            return await interaction.showModal(modal);
+        }
+
+        // ==========================================
+        // 3. SUBMIT FORM MODAL: modal_add_roles_* / modal_edit_roles_*
+        // ==========================================
+        if (interaction.isModalSubmit() && (interaction.customId.startsWith('modal_add_roles_') || interaction.customId.startsWith('modal_edit_roles_'))) {
+            const isEdit = interaction.customId.startsWith('modal_edit_roles_');
+            let targetChannelId = '';
+            let messageIdToEdit = '';
+
+            if (isEdit) {
+                const parts = interaction.customId.replace('modal_edit_roles_', '').split('_');
+                targetChannelId = parts[0];
+                messageIdToEdit = parts[1];
+            } else {
+                targetChannelId = interaction.customId.replace('modal_add_roles_', '');
+            }
+
             const targetChannel = interaction.guild.channels.cache.get(targetChannelId) || interaction.channel;
 
             const title = interaction.fields.getTextInputValue('input_panel_title');
@@ -149,7 +265,7 @@ module.exports = {
             const parsedRoles = parseRoleLines(rolesRaw);
             if (parsedRoles.length === 0) {
                 return interaction.reply({
-                    content: '❌ Gagal membuat panel: Daftar tombol role tidak boleh kosong!',
+                    content: '❌ Gagal: Daftar tombol role tidak boleh kosong!',
                     ephemeral: true
                 });
             }
@@ -202,31 +318,51 @@ module.exports = {
             }
 
             try {
-                await targetChannel.send({
-                    embeds: [embed],
-                    components: actionRows
-                });
+                if (isEdit) {
+                    // Update pesan yang sudah ada
+                    const targetMessage = await targetChannel.messages.fetch(messageIdToEdit);
+                    await targetMessage.edit({
+                        embeds: [embed],
+                        components: actionRows
+                    });
 
-                let responseMsg = `✅ Panel Select Roles **${title}** berhasil dibuat dan dikirim ke ${targetChannel}!`;
-                if (notFoundRoles.length > 0) {
-                    responseMsg += `\n⚠️ *Catatan: Role [${notFoundRoles.join(', ')}] belum ditemukan di Server Settings, pastikan dibuat agar tombolnya bisa membagikan role.*`;
+                    let responseMsg = `✅ Panel Select Roles **${title}** berhasil diperbarui!`;
+                    if (notFoundRoles.length > 0) {
+                        responseMsg += `\n⚠️ *Catatan: Role [${notFoundRoles.join(', ')}] belum ditemukan di Server Settings.*`;
+                    }
+
+                    return interaction.reply({
+                        content: responseMsg,
+                        ephemeral: true
+                    });
+                } else {
+                    // Kirim pesan baru
+                    await targetChannel.send({
+                        embeds: [embed],
+                        components: actionRows
+                    });
+
+                    let responseMsg = `✅ Panel Select Roles **${title}** berhasil dibuat dan dikirim ke ${targetChannel}!`;
+                    if (notFoundRoles.length > 0) {
+                        responseMsg += `\n⚠️ *Catatan: Role [${notFoundRoles.join(', ')}] belum ditemukan di Server Settings, pastikan dibuat agar tombolnya bisa membagikan role.*`;
+                    }
+
+                    return interaction.reply({
+                        content: responseMsg,
+                        ephemeral: true
+                    });
                 }
-
-                return interaction.reply({
-                    content: responseMsg,
-                    ephemeral: true
-                });
             } catch (err) {
-                console.error('❌ Error saat mengirim custom role panel:', err);
+                console.error('❌ Error saat memproses role panel:', err);
                 return interaction.reply({
-                    content: `❌ Gagal mengirim panel: ${err.message}`,
+                    content: `❌ Gagal memproses panel: ${err.message}`,
                     ephemeral: true
                 });
             }
         }
 
         // ==========================================
-        // 3. HANDLER BUTTON INTERACTION DINAMIS: dynrole_*
+        // 4. HANDLER BUTTON INTERACTION DINAMIS: dynrole_*
         // ==========================================
         if (interaction.isButton() && interaction.customId.startsWith('dynrole_')) {
             const parts = interaction.customId.split('_');
@@ -268,7 +404,7 @@ module.exports = {
                     });
                 }
 
-                // Jika mode Eksklusif (Hanya boleh 1), lepas role-role lain yang ada di panel yang sama
+                // Jika mode Eksklusif (Single-select), lepas role-role lain yang ada di panel yang sama
                 if (mode === 'exclusive') {
                     const messageComponents = interaction.message.components || [];
                     for (const row of messageComponents) {

@@ -82,15 +82,25 @@ client.on("ready", async () => {
               .setRequired(false)
       );
 
+  const editRolesCmd = new SlashCommandBuilder()
+      .setName('edit-roles')
+      .setDescription('Edit judul, deskripsi, atau tombol pada panel role yang sudah ada')
+      .setDefaultMemberPermissions(PermissionFlagsBits.Administrator)
+      .addStringOption(option =>
+          option.setName('message_id')
+              .setDescription('ID pesan panel role yang ingin diedit (Klik kanan pesan -> Copy Message ID)')
+              .setRequired(true)
+      );
+
   try {
       // 1. Hapus Global Commands agar tidak duplikat dengan Guild Commands di Discord
       await client.application.commands.set([]);
 
       // 2. Daftarkan hanya ke level Server/Guild (Langsung aktif & tidak dobel)
       for (const guild of client.guilds.cache.values()) {
-          await guild.commands.set([announceCmd, editCmd, addRolesCmd]);
+          await guild.commands.set([announceCmd, editCmd, addRolesCmd, editRolesCmd]);
       }
-      console.log("✅ Command /announce, /edit-message, & /add-roles berhasil diperbarui!");
+      console.log("✅ Command /announce, /edit-message, /add-roles, & /edit-roles berhasil diperbarui!");
   } catch (error) {
       console.error("❌ Gagal mendaftarkan slash commands:", error);
   }
