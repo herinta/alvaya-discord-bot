@@ -301,6 +301,8 @@ module.exports = {
             const notFoundRoles = [];
 
             for (const item of parsedRoles) {
+                const targetRole = findRoleByName(interaction.guild, item.roleName);
+                const roleId = targetRole ? targetRole.id : item.roleName;
                 const rawLabel = item.roleName || (targetRole ? targetRole.name : '');
                 const btnLabel = item.emoji ? cleanRoleLabel(rawLabel) : rawLabel;
 
