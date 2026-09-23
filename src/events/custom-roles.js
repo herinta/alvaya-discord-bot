@@ -38,14 +38,28 @@ function parseRoleLines(rawText) {
 }
 
 /**
+ * Fungsi untuk membersihkan emoji di awal teks label agar tidak dobel
+ */
+function cleanRoleLabel(name) {
+    if (!name) return '';
+    const cleaned = name.replace(/^(\p{Extended_Pictographic}|\p{Emoji_Presentation}|\uFE0F|\s)+/u, '').trim();
+    return cleaned || name;
+}
+
+/**
  * Fungsi pembantu untuk mencari role berdasarkan nama
  */
 function findRoleByName(guild, rawName) {
     if (!rawName || !guild) return null;
     const clean = rawName.trim().toLowerCase();
+    const cleanNoEmoji = cleanRoleLabel(clean).toLowerCase();
     return guild.roles.cache.find(r => {
         const rName = r.name.toLowerCase();
-        return rName === clean || rName.includes(clean) || clean.includes(rName);
+        return rName === clean || 
+               rName.includes(clean) || 
+               clean.includes(rName) ||
+               rName.includes(cleanNoEmoji) ||
+               cleanNoEmoji.includes(cleanRoleLabel(rName).toLowerCase());
     });
 }
 
@@ -177,7 +191,7 @@ module.exports = {
                 for (const btn of row.components) {
                     if (btn.customId) {
                         const emojiStr = btn.emoji ? (btn.emoji.id ? `<:${btn.emoji.name}:${btn.emoji.id}>` : btn.emoji.name) : '🏷️';
-                        existingRolesLines.push(`${emojiStr} | ${btn.label || ''}`);
+                        existingRolesLines.push(`${emojiStr} | ${cleanRoleLabel(btn.label || '')}`);
                         if (btn.customId.includes('exclusive')) {
                             existingMode = '1';
                         }
@@ -287,9 +301,8 @@ module.exports = {
             const notFoundRoles = [];
 
             for (const item of parsedRoles) {
-                const targetRole = findRoleByName(interaction.guild, item.roleName);
-                const roleId = targetRole ? targetRole.id : item.roleName;
-                const btnLabel = targetRole ? targetRole.name : item.roleName;
+                const rawLabel = item.roleName || (targetRole ? targetRole.name : '');
+                const btnLabel = item.emoji ? cleanRoleLabel(rawLabel) : rawLabel;
 
                 if (!targetRole) {
                     notFoundRoles.push(item.roleName);
