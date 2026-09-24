@@ -18,7 +18,7 @@ module.exports = {
     channels: {
         welcome: '1472873395975618590',
         confess: '1472837735470600192',
-        intro: '1472873395975618590', // ID channel introduction
+        intro: '1472873395975618590',
         youtubeLive: '1515011100746322001',
         rules: '123456789012345678',
         verify: '123456789012345678'
@@ -27,7 +27,10 @@ module.exports = {
     // Voice & Category IDs
     voice: {
         gameCategory: '1472829010747588639',
-        gameLobbyVoice: '1518159971315875990'
+        gameLobbyVoice: '1518159971315875990',
+        // Auto Join-To-Create Voice
+        autoCategory: '1515239391390466229',
+        autoLobbyVoice: '1515239392485310516'
     },
 
     // YouTube Live Config
