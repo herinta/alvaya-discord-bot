@@ -42,16 +42,16 @@ module.exports = {
             // Bungkus jadi file attachment
             const attachment = new AttachmentBuilder(await canvas.encode('png'), { name: 'welcome-image.png' });
 
-            // --- STEP 2: BIKIN EMBED MESSAGE ---
+            // --- STEP 2: BIKIN EMBED MESSAGE DENGAN TAG CHANNEL ---
             const welcomeEmbed = new EmbedBuilder()
                 .setColor('#00FFFF')
                 .setTitle('🌊 Welcome to Aquarium Lele! 🐟')
                 .setDescription(
                     `Hii fishyyy, welcome to our little Aquarium! 🫧💙\n\n` +  
-                    `• 📜 Check the rules first!\n` +
-                    `• 🎀 Pick your roles!\n` +
-                    `• 🪪 Introduce yourself!\n` +
-                    `• 💬 Come say hi & have fun!\n\n` +
+                    `• 📜 Check the rules first! <#${config.channels.rules}>\n` +
+                    `• 🎀 Pick your roles! <#${config.channels.roles}>\n` +
+                    `• 🪪 Introduce yourself! <#${config.channels.intro}>\n` +
+                    `• 💬 Come say hi & have fun! <#${config.channels.generalChat}>\n\n` +
                     `Don't be shy, come swim with us~ 🐠💙`
                 )
                 .setImage('attachment://welcome-image.png')
