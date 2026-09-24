@@ -30,7 +30,7 @@ module.exports = {
         gameLobbyVoice: '1518159971315875990',
         // Auto Join-To-Create Voice
         autoCategory: '1515239391390466229',
-        autoLobbyVoice: '1515239392485310516'
+        autoLobbyVoice: '1552513360413728898'
     },
 
     // YouTube Live Config
