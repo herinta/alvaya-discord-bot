@@ -22,7 +22,8 @@ function createIntroPanelEmbed() {
             '• **Nickname**: Nama panggilanmu\n' +
             '• **Age**: Usia kamu\n' +
             '• **Hobby**: Hobi / Hal kesukaanmu\n' +
-            '• **Game**: Game favorit yang kamu mainkan\n\n' +
+            '• **Game**: Game favorit yang kamu mainkan\n' +
+            '• **Quote**: Kata-kata / quote favoritmu\n\n' +
             'Klik tombol di bawah untuk mulai mengisi! 👇'
         );
 }
@@ -76,11 +77,19 @@ async function handleIntroButton(interaction) {
         .setStyle(TextInputStyle.Paragraph)
         .setRequired(true);
 
+    const quoteInput = new TextInputBuilder()
+        .setCustomId('input_quote')
+        .setLabel('Quote / Kata-kata Favorit')
+        .setPlaceholder('Contoh: "Hidup terlalu singkat untuk jadi biasa-biasa aja"')
+        .setStyle(TextInputStyle.Short)
+        .setRequired(false);
+
     modal.addComponents(
         new ActionRowBuilder().addComponents(nickInput),
         new ActionRowBuilder().addComponents(ageInput),
         new ActionRowBuilder().addComponents(hobbyInput),
-        new ActionRowBuilder().addComponents(gameInput)
+        new ActionRowBuilder().addComponents(gameInput),
+        new ActionRowBuilder().addComponents(quoteInput)
     );
 
     await interaction.showModal(modal);
@@ -114,6 +123,7 @@ async function handleIntroModal(interaction) {
     const age = interaction.fields.getTextInputValue('input_age');
     const hobby = interaction.fields.getTextInputValue('input_hobby');
     const game = interaction.fields.getTextInputValue('input_game');
+    const quote = interaction.fields.getTextInputValue('input_quote');
 
     const user = interaction.user;
 
@@ -129,7 +139,8 @@ async function handleIntroModal(interaction) {
             `📛 **Nickname:** ${nickname}\n` +
             `🎂 **Age:** ${age}\n` +
             `🎨 **Hobby:** ${hobby}\n` +
-            `🎮 **Game:** ${game}`
+            `🎮 **Game:** ${game}` +
+            (quote ? `\n\n💬 *"${quote}"*` : '')
         )
         .setThumbnail(user.displayAvatarURL({ dynamic: true, size: 256 }))
         .setFooter({ text: `Member Introduction • ${user.tag}`, iconURL: user.displayAvatarURL() })
