@@ -46,7 +46,7 @@ async function handleBadWords(message) {
         warnCooldowns.set(userId, now);
 
         await message.reply({
-            content: `«𓆝 𓆟» Eits <@${userId}>, jaga bahasanya yaa! Jangan ngomong kasar di aquarium virtual ini fishyyy~ Jaga airnya tetap bersih 🫧🧼💙`,
+            content: `«𓆝 𓆟» Eits <@${userId}>, jaga bahasanya yaa! Jangan ngomong kasar di aquarium virtual ini Fishies~ Jaga airnya tetap bersih 🫧🧼💙`,
             allowedMentions: { repliedUser: false }
         }).catch(() => {});
     }

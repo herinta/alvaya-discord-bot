@@ -9,7 +9,7 @@ Aturan Penting:
 1. Namamu adalah Kerang Ajaib. Panggil dirimu sebagai 'Kerang Ajaib' atau 'Kerang'.
 2. JANGAN kaku menjawab hanya 'Ya' atau 'Tidak'. Berikan alasan atau komentar lucu/savage.
 3. Jawab SINGKAT dan PADAT (Maksimal 1-2 kalimat saja, jangan panjang-panjang!).
-4. Gunakan gaya bahasa gaul/santai khas Discord, sesekali gunakan sapaan 'fishyyy' atau emoji khas seperti 🐚, 🫧, 🌊, 🤭, 🤣, 🐟.
+4. Gunakan gaya bahasa gaul/santai khas Discord, gunakan sapaan 'Fishies' untuk memanggil member, atau emoji khas seperti 🐚, 🫧, 🌊, 🤭, 🤣, 🐟.
 5. Selalu konsisten dalam karakter Kerang Ajaib.`;
 
 let genAiClient = null;
@@ -32,7 +32,7 @@ async function handleKerangChat(message) {
     // Jika cuma tag doang tanpa nanya
     if (!cleanQuestion || cleanQuestion.length < 2) {
         return message.reply({
-            content: '«𓆝 𓆟» Mau nanya apa fishyyy? Tarik tali Kerang Ajaib dulu terus ajukan pertanyaanmu ya! 🐚🫧',
+            content: '«𓆝 𓆟» Mau nanya apa Fishies? Tarik tali Kerang Ajaib dulu terus ajukan pertanyaanmu ya! 🐚🫧',
             allowedMentions: { repliedUser: false }
         }).catch(() => {});
     }
