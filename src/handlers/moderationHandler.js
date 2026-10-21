@@ -10,6 +10,10 @@ const BANNED_WORDS = [
 // Regex untuk mendeteksi kata terlarang (mencakup variasi huruf & simbol umum)
 const BANNED_REGEX = new RegExp(`\\b(${BANNED_WORDS.join('|')})\\b`, 'i');
 
+// Cache cooldown teguran agar bot tidak spam membalas (key: userId -> timestamp)
+const warnCooldowns = new Map();
+const WARN_COOLDOWN_MS = 5000; // 5 detik per user
+
 /**
  * Mengecek apakah teks mengandung kata terlarang
  * @param {string} text 
@@ -34,12 +38,18 @@ async function handleBadWords(message) {
     }
 
     const userId = message.author.id;
+    const now = Date.now();
+    const lastWarn = warnCooldowns.get(userId) || 0;
 
-    // Selalu kirim teguran ramah ala Aquarium Teles setiap kali ada kata kasar
-    await message.reply({
-        content: `«𓆝 𓆟» Eits <@${userId}>, jaga bahasanya yaa! Jangan ngomong kasar di aquarium virtual ini fishyyy~ Jaga airnya tetap bersih 🫧🧼💙`,
-        allowedMentions: { repliedUser: false }
-    }).catch(() => {});
+    // Jika sudah lewat 5 detik sejak teguran terakhir untuk user ini, kirim teguran
+    if (now - lastWarn >= WARN_COOLDOWN_MS) {
+        warnCooldowns.set(userId, now);
+
+        await message.reply({
+            content: `«𓆝 𓆟» Eits <@${userId}>, jaga bahasanya yaa! Jangan ngomong kasar di aquarium virtual ini fishyyy~ Jaga airnya tetap bersih 🫧🧼💙`,
+            allowedMentions: { repliedUser: false }
+        }).catch(() => {});
+    }
 
     return true;
 }
