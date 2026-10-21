@@ -59,7 +59,7 @@ module.exports = {
                             
                             if (targetChannel) {
                                 const messageContent = [
-                                    '🐟 PSSST... FISHYYY!',
+                                    '🐟 PSSST... FISHIES!',
                                     'Lele udah LIVE nihh~ 👀💙',
                                     'Jangan ngumpet, sini kumpul! 🫧',
                                     '',

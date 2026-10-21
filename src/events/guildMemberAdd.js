@@ -47,7 +47,7 @@ module.exports = {
                 .setColor('#00FFFF')
                 .setTitle('🌊 Welcome to Aquarium Lele! 🐟')
                 .setDescription(
-                    `Hii fishyyy, welcome to our little Aquarium! 🫧💙\n\n` +  
+                    `Hii Fishies, welcome to our little Aquarium! 🫧💙\n\n` +  
                     `• 📜 Check the rules first! <#${config.channels.rules}>\n` +
                     `• 🎀 Pick your roles! <#${config.channels.roles}>\n` +
                     `• 🪪 Introduce yourself! <#${config.channels.intro}>\n` +

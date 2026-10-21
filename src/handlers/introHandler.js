@@ -16,7 +16,7 @@ function createIntroPanelEmbed() {
         .setColor('#00FFFF')
         .setTitle('🪪 MEMBER INTRODUCTION')
         .setDescription(
-            'Halo Fishyyy! Kenalan yuk biar makin akrab di Aquarium Lele! 🫧💙\n\n' +
+            'Halo Fishies! Kenalan yuk biar makin akrab di Aquarium Lele! 🫧💙\n\n' +
             'Silakan klik tombol **"Introduce"** di bawah ini untuk mengisi formulir perkenalan singkat dirimu.\n\n' +
             '📝 **Data yang diisi:**\n' +
             '• **Nickname**: Nama panggilanmu\n' +
