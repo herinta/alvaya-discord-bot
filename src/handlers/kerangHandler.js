@@ -60,7 +60,12 @@ async function handleKerangChat(message) {
     await message.channel.sendTyping().catch(() => {});
 
     const apiKeys = getAvailableApiKeys();
-    const primaryModel = process.env.GEMINI_MODEL || 'models/gemini-3.1-flash-lite';
+    const primaryModel = process.env.GEMINI_MODEL || 'models/gemini-3.5-flash-lite';
+
+    const fastConfig = {
+        max_output_tokens: 80,
+        thinking_level: 'minimal'
+    };
 
     // Coba setiap API Key yang tersedia berurutan jika ada yang limit
     for (let i = 0; i < apiKeys.length; i++) {
@@ -73,14 +78,16 @@ async function handleKerangChat(message) {
                     model: primaryModel,
                     input: cleanQuestion,
                     system_instruction: SYSTEM_PROMPT,
+                    generation_config: fastConfig
                 });
             } catch (err) {
                 // Jika model sibuk (503 high demand), gunakan model alternatif
-                if (err.message?.includes('503') || err.message?.includes('high demand')) {
+                if (err.message?.includes('503') || err.message?.includes('high demand') || err.message?.includes('404')) {
                     interaction = await ai.interactions.create({
                         model: 'models/gemini-3-flash-preview',
                         input: cleanQuestion,
                         system_instruction: SYSTEM_PROMPT,
+                        generation_config: fastConfig
                     });
                 } else {
                     throw err;
