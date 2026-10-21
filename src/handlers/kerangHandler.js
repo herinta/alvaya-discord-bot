@@ -1,4 +1,4 @@
-const axios = require('axios');
+const { GoogleGenAI } = require('@google/genai');
 
 const FALLBACK_MESSAGE = 'Kerang lagi tidur 😴💤';
 
@@ -11,6 +11,14 @@ Aturan Penting:
 3. Jawab SINGKAT dan PADAT (Maksimal 1-2 kalimat saja, jangan panjang-panjang!).
 4. Gunakan gaya bahasa gaul/santai khas Discord, sesekali gunakan sapaan 'fishyyy' atau emoji khas seperti 🐚, 🫧, 🌊, 🤭, 🤣, 🐟.
 5. Selalu konsisten dalam karakter Kerang Ajaib.`;
+
+let genAiClient = null;
+function getGenAiClient(apiKey) {
+    if (!genAiClient) {
+        genAiClient = new GoogleGenAI({ apiKey });
+    }
+    return genAiClient;
+}
 
 /**
  * Handle chat saat bot di-tag untuk bertanya ke Kerang Ajaib
@@ -34,40 +42,42 @@ async function handleKerangChat(message) {
 
     const apiKey = process.env.GEMINI_API_KEY?.trim();
 
-    // 1. Jika ada GEMINI_API_KEY, gunakan Google Gemini AI
+    // 1. Jika ada GEMINI_API_KEY, gunakan Google Gen AI Interactions API
     if (apiKey) {
         try {
-            const model = process.env.GEMINI_MODEL || 'gemini-3.8-flash';
-            const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
-            const response = await axios.post(
-                url,
-                {
-                    contents: [
-                        {
-                            role: 'user',
-                            parts: [{ text: cleanQuestion }]
-                        }
-                    ],
-                    systemInstruction: {
-                        parts: [{ text: SYSTEM_PROMPT }]
-                    },
-                    generationConfig: {
-                        temperature: 1.0,
-                        maxOutputTokens: 120
-                    }
-                },
-                { timeout: 8000 }
-            );
+            const ai = getGenAiClient(apiKey);
+            const primaryModel = process.env.GEMINI_MODEL || 'models/gemini-3.8-flash';
+            
+            let interaction;
+            try {
+                interaction = await ai.interactions.create({
+                    model: primaryModel,
+                    input: cleanQuestion,
+                    system_instruction: SYSTEM_PROMPT,
+                });
+            } catch (err) {
+                // Jika gemini-3.8-flash sedang spike 503 high demand, otomatis fallback ke gemini-3-flash-preview
+                if (err.message?.includes('503') || err.message?.includes('high demand')) {
+                    console.warn(`⚠️ [Kerang AI] ${primaryModel} sibuk (503), mencoba model cadangan...`);
+                    interaction = await ai.interactions.create({
+                        model: 'models/gemini-3-flash-preview',
+                        input: cleanQuestion,
+                        system_instruction: SYSTEM_PROMPT,
+                    });
+                } else {
+                    throw err;
+                }
+            }
 
-            const aiReply = response.data?.candidates?.[0]?.content?.parts?.[0]?.text?.trim();
+            const aiReply = interaction?.output_text || interaction?.steps?.at(-1)?.content?.[0]?.text;
             if (aiReply) {
                 return message.reply({
-                    content: aiReply,
+                    content: aiReply.trim(),
                     allowedMentions: { repliedUser: false }
                 });
             }
         } catch (error) {
-            console.error('⚠️ [Kerang AI] Gagal memanggil Gemini API, beralih ke fallback:', error.response?.data?.error?.message || error.message);
+            console.error('⚠️ [Kerang AI] Gagal memanggil Gemini API:', error.message);
         }
     }
 
