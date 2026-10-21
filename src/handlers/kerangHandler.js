@@ -18,12 +18,25 @@ ATURAN UTAMA (WAJIB DIPATUHI):
 4. SAPAAN:
    - Gunakan sapaan 'Fishies' untuk memanggil member, sertakan emoji khas seperti 🐚, 🫧, 🌊, 🤭, 🤣, 🐟.`;
 
-let genAiClient = null;
+const clientCache = new Map();
 function getGenAiClient(apiKey) {
-    if (!genAiClient) {
-        genAiClient = new GoogleGenAI({ apiKey });
+    if (!clientCache.has(apiKey)) {
+        clientCache.set(apiKey, new GoogleGenAI({ apiKey }));
     }
-    return genAiClient;
+    return clientCache.get(apiKey);
+}
+
+/**
+ * Mendapatkan daftar API Key (utama + cadangan) dari environment variable
+ * Mendukung beberapa key yang dipisahkan koma pada GEMINI_API_KEY atau GEMINI_API_KEYS
+ * @returns {string[]}
+ */
+function getAvailableApiKeys() {
+    const rawEnv = process.env.GEMINI_API_KEYS || process.env.GEMINI_API_KEY || '';
+    return rawEnv
+        .split(',')
+        .map(k => k.trim())
+        .filter(Boolean);
 }
 
 /**
@@ -46,14 +59,14 @@ async function handleKerangChat(message) {
     // Kirim indikator mengetik
     await message.channel.sendTyping().catch(() => {});
 
-    const apiKey = process.env.GEMINI_API_KEY?.trim();
+    const apiKeys = getAvailableApiKeys();
+    const primaryModel = process.env.GEMINI_MODEL || 'models/gemini-3.1-flash-lite';
 
-    // 1. Jika ada GEMINI_API_KEY, gunakan Google Gen AI Interactions API
-    if (apiKey) {
+    // Coba setiap API Key yang tersedia berurutan jika ada yang limit
+    for (let i = 0; i < apiKeys.length; i++) {
+        const apiKey = apiKeys[i];
         try {
             const ai = getGenAiClient(apiKey);
-            const primaryModel = process.env.GEMINI_MODEL || 'models/gemini-3.8-flash';
-            
             let interaction;
             try {
                 interaction = await ai.interactions.create({
@@ -62,9 +75,8 @@ async function handleKerangChat(message) {
                     system_instruction: SYSTEM_PROMPT,
                 });
             } catch (err) {
-                // Jika gemini-3.8-flash sedang spike 503 high demand, otomatis fallback ke gemini-3-flash-preview
+                // Jika model sibuk (503 high demand), gunakan model alternatif
                 if (err.message?.includes('503') || err.message?.includes('high demand')) {
-                    console.warn(`⚠️ [Kerang AI] ${primaryModel} sibuk (503), mencoba model cadangan...`);
                     interaction = await ai.interactions.create({
                         model: 'models/gemini-3-flash-preview',
                         input: cleanQuestion,
@@ -83,7 +95,7 @@ async function handleKerangChat(message) {
                 });
             }
         } catch (error) {
-            console.error('⚠️ [Kerang AI] Gagal memanggil Gemini API:', error.message);
+            console.warn(`⚠️ [Kerang AI] Key #${i + 1} limit/gagal: ${error.message}. Beralih ke key cadangan...`);
         }
     }
 
