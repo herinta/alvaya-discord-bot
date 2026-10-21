@@ -4,12 +4,21 @@ const { createRulesEmbed, createConfessButton } = require('../handlers/confessHa
 const { createIntroPanelEmbed, createIntroButton } = require('../handlers/introHandler');
 const { handleChatMessage, syncLevelRole } = require('../handlers/levelingHandler');
 const { handleKerangChat } = require('../handlers/kerangHandler');
+const { handleBadWords } = require('../handlers/moderationHandler');
 
 module.exports = {
     name: Events.MessageCreate,
     async execute(message) {
         // Abaikan pesan yang dikirim oleh bot lain biar tidak terjadi looping
         if (message.author.bot) return;
+
+        // ====================================================
+        // 0. AUTO-FILTER KATA KASAR (Deteksi Otomatis Tanpa Tag)
+        // ====================================================
+        const isBadWord = await handleBadWords(message);
+        if (isBadWord) {
+            return; // Hentikan: tidak dapat XP dan tidak direspon AI
+        }
 
         // ====================================================
         // 1. PROSES XP CHAT LEVELING (Hanya jika fitur aktif)
