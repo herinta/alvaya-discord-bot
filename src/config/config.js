@@ -5,7 +5,21 @@
 module.exports = {
     // Feature Toggles (Nyalakan / Matikan fitur dengan true / false)
     features: {
-        leveling: false // Dinonaktifkan sementara (ubah ke true saat kamu siap merilis fitur leveling)
+        leveling: true // Aktif untuk testing & penggunaan
+    },
+
+    // Role Reward Tiap Level (Level 1 - 10)
+    levelRoles: {
+        1: '1562456739843014696',
+        2: '1562457016625274950',
+        3: '1562457223991660654',
+        4: '1562457558457782312',
+        5: '1562457670835896470',
+        6: '1562457776142422016',
+        7: '1562457896174755920',
+        8: '1562458044502122567',
+        9: '1562458162655662080',
+        10: '1562458680828493854'
     },
 
     // Whitelist Server ID

@@ -1,9 +1,39 @@
 const { EmbedBuilder } = require('discord.js');
 const levelModel = require('../database/models/levelModel');
+const config = require('../config/config');
 
 // Cache Cooldown di memory: key `${guildId}:${userId}` -> timestamp
 const cooldowns = new Map();
-const COOLDOWN_MS = 60 * 1000; // 60 detik (1 menit)
+const COOLDOWN_MS = 20 * 1000; // 1 detik (Mode testing demo spam chat)
+
+/**
+ * Sinkronisasi role reward berdasarkan level
+ * Memberikan role level baru dan melepas role level sebelumnya agar rapi
+ * @param {import('discord.js').GuildMember} member 
+ * @param {number} targetLevel 
+ */
+async function syncLevelRole(member, targetLevel) {
+    if (!member || !member.roles || !config.levelRoles) return null;
+    const targetRoleId = config.levelRoles[targetLevel];
+    if (!targetRoleId) return null;
+
+    try {
+        // Tambahkan role level baru
+        await member.roles.add(targetRoleId).catch(() => {});
+
+        // Hapus role level sebelumnya agar tidak menumpuk
+        const allLevelRoleIds = Object.values(config.levelRoles);
+        const rolesToRemove = allLevelRoleIds.filter(id => id !== targetRoleId && member.roles.cache.has(id));
+        if (rolesToRemove.length > 0) {
+            await member.roles.remove(rolesToRemove).catch(() => {});
+        }
+
+        return targetRoleId;
+    } catch (error) {
+        console.error('❌ Gagal sinkronisasi role level:', error.message);
+        return null;
+    }
+}
 
 /**
  * Memproses XP dari chat pengguna
@@ -38,18 +68,25 @@ async function handleChatMessage(message) {
     try {
         const result = await levelModel.addXp(guildId, userId, xpToAdd);
 
-        // Jika naik level, kirim pesan ucapan selamat
+        // Jika naik level, berikan role dan kirim ucapan selamat
         if (result.leveledUp) {
+            const isMax = result.newLevel >= 10;
+            await syncLevelRole(message.member, result.newLevel);
+
             const levelUpEmbed = new EmbedBuilder()
-                .setColor('#00FFFF')
-                .setTitle('🎉 Level Up! 🫧')
-                .setDescription(`Selamat <@${userId}>! Kamu berhasil mencapai **Level ${result.newLevel}**! 🌊🐟`)
+                .setColor('#58B9FF')
+                .setTitle(isMax ? '👑🫧 PENGUASA AQUARIUM! — MAX LEVEL REACHED! 🐟' : '🌊🫧 SPLASH! LEVEL UP! 🐟')
+                .setDescription(
+                    `«𓆝 𓆟 𓆞 𓆝 𓆟\n` +
+                    `Waaah selamat <@${userId}>! Kamu berhasil berenang makin jauh dan mencapai **Level ${result.newLevel}**${isMax ? ' 👑' : ''}! 🫧💙\n` +
+                    `»`
+                )
                 .setThumbnail(message.author.displayAvatarURL({ dynamic: true }))
-                .setFooter({ text: `Alvaya Leveling • Total XP: ${result.totalXp.toLocaleString()}` })
+                .setFooter({ text: `Aquarium Teles • Total XP: ${result.totalXp.toLocaleString()} 🫧` })
                 .setTimestamp();
 
             await message.channel.send({
-                content: `🎊 Gg <@${userId}>!`,
+                content: `🫧 Splash! Yeay naik level nih~ <@${userId}> 𓆝 𓆟 💙`,
                 embeds: [levelUpEmbed]
             }).catch(() => {});
         }
@@ -59,5 +96,6 @@ async function handleChatMessage(message) {
 }
 
 module.exports = {
-    handleChatMessage
+    handleChatMessage,
+    syncLevelRole
 };

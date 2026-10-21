@@ -1,6 +1,7 @@
 const { SlashCommandBuilder, PermissionFlagsBits } = require('discord.js');
 const { hasStaffAccess } = require('../../utils/permissions');
 const levelModel = require('../../database/models/levelModel');
+const { syncLevelRole } = require('../../handlers/levelingHandler');
 
 module.exports = {
     data: new SlashCommandBuilder()
@@ -41,10 +42,16 @@ module.exports = {
             });
         }
 
+        const targetMember = await interaction.guild.members.fetch(targetUser.id).catch(() => null);
+
         if (subcommand === 'add-xp') {
             const amount = interaction.options.getInteger('amount');
             const result = await levelModel.addXp(guildId, targetUser.id, amount);
             
+            if (targetMember && result.leveledUp) {
+                await syncLevelRole(targetMember, result.newLevel);
+            }
+
             return interaction.reply({
                 content: `✅ Berhasil menambahkan **${amount.toLocaleString()} XP** ke <@${targetUser.id}>!\nSekarang Level: **${result.newLevel}** (Total XP: ${result.totalXp.toLocaleString()})`,
                 ephemeral: true
@@ -54,6 +61,10 @@ module.exports = {
         if (subcommand === 'set-level') {
             const targetLevel = interaction.options.getInteger('level');
             const result = await levelModel.setUserLevel(guildId, targetUser.id, targetLevel);
+
+            if (targetMember) {
+                await syncLevelRole(targetMember, result.level);
+            }
 
             return interaction.reply({
                 content: `✅ Berhasil mengubah level <@${targetUser.id}> menjadi **Level ${result.level}** (Total XP disesuaikan: ${result.totalXp.toLocaleString()})`,

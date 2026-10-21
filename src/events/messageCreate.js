@@ -2,7 +2,8 @@ const { Events, ActionRowBuilder, StringSelectMenuBuilder, EmbedBuilder } = requ
 const config = require('../config/config');
 const { createRulesEmbed, createConfessButton } = require('../handlers/confessHandler');
 const { createIntroPanelEmbed, createIntroButton } = require('../handlers/introHandler');
-const { handleChatMessage } = require('../handlers/levelingHandler');
+const { handleChatMessage, syncLevelRole } = require('../handlers/levelingHandler');
+const { handleKerangChat } = require('../handlers/kerangHandler');
 
 module.exports = {
     name: Events.MessageCreate,
@@ -18,6 +19,15 @@ module.exports = {
         }
 
         // ====================================================
+        // 1b. KERANG AJAIB AI (Jika bot di-tag/mention)
+        // ====================================================
+        const isMentioned = message.mentions.has(message.client.user) && !message.mentions.everyone;
+        if (isMentioned) {
+            await handleKerangChat(message);
+            return;
+        }
+
+        // ====================================================
         // 2. COMMAND: !ping
         // ====================================================
         if (message.content === '!ping') {
@@ -30,6 +40,33 @@ module.exports = {
         if (message.content === '!testwelcome') {
             message.client.emit(Events.GuildMemberAdd, message.member);
             return message.react('✅').catch(console.error);
+        }
+
+        // ====================================================
+        // 3b. COMMAND: !testlevelup (Untuk testing Notifikasi Level Up)
+        // ====================================================
+        if (message.content.startsWith('!testlevelup')) {
+            const args = message.content.trim().split(/\s+/);
+            const testLevel = args[1] ? parseInt(args[1], 10) || 1 : 1;
+            const isMax = testLevel >= 10;
+            await syncLevelRole(message.member, testLevel);
+            
+            const levelUpEmbed = new EmbedBuilder()
+                .setColor('#58B9FF')
+                .setTitle(isMax ? '👑🫧 PENGUASA AQUARIUM! — MAX LEVEL REACHED! 🐟' : '🌊🫧 SPLASH! LEVEL UP! 🐟')
+                .setDescription(
+                    `«𓆝 𓆟 𓆞 𓆝 𓆟\n` +
+                    `Waaah selamat <@${message.author.id}>! Kamu berhasil berenang makin jauh dan mencapai **Level ${testLevel}**${isMax ? ' 👑' : ''}! 🫧💙\n` +
+                    `»`
+                )
+                .setThumbnail(message.author.displayAvatarURL({ dynamic: true }))
+                .setFooter({ text: `Aquarium Teles • Demo Notifikasi 🫧` })
+                .setTimestamp();
+
+            return message.channel.send({
+                content: `🫧 Splash! Yeay naik level nih~ <@${message.author.id}> 𓆝 𓆟 💙`,
+                embeds: [levelUpEmbed]
+            });
         }
 
         // ====================================================
