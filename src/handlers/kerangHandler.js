@@ -37,7 +37,8 @@ async function handleKerangChat(message) {
     // 1. Jika ada GEMINI_API_KEY, gunakan Google Gemini AI
     if (apiKey) {
         try {
-            const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
+            const model = process.env.GEMINI_MODEL || 'gemini-3.8-flash';
+            const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
             const response = await axios.post(
                 url,
                 {
